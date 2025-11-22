@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import numpy as np
+import io
 
 # --- IMPORT CUSTOM ENGINE ---
 try:
@@ -90,11 +91,87 @@ st.sidebar.markdown("[Email Me](mailto:alihaiderfinance.cfo@gmail.com)")
 # --- STEP 1: UPLOAD ---
 st.header("Step 1: Upload your transactions")
 st.info("""
+**Accepted Formats:** CSV, Excel (.xlsx, .xls)
 **Required Columns:** `Date`, `Vendor` (or Description), `Amount`
-*(If your file is different, just rename the columns in Excel first!)*
 """)
 
-uploaded_file = st.file_uploader("Drag and drop CSV file here", type=['csv'])
+# SAMPLE FILE GENERATOR
+def generate_sample_csv():
+    sample_data = """Date,Vendor,Amount,Description
+2025-01-01,Amazon,120.50,Office Supplies
+2025-01-02,Shell Station,50.00,Gas
+2025-01-03,Shell Station,50.00,Gas (Duplicate!)
+2025-01-04,Consulting Inc,5000.00,Service Fee (Round Number)
+2025-01-05,Uber,25.30,Travel
+2025-01-06,Uber,25.30,Travel
+2025-01-07,Fake Corp,1234.00,Misc
+2025-01-08,Vendor A,10.00,Test
+2025-01-09,Vendor B,20.00,Test
+2025-01-10,Vendor C,30.00,Test
+2025-01-11,Amazon,45.20,Supplies
+2025-01-12,Walmart,12.50,Breakroom
+2025-01-13,Shell_01,4500.00,Fuel
+2025-01-14,NightOwl_Services,489.23,Service
+2025-01-15,NightOwl_Services,489.23,Service
+2025-01-16,Vendor_A,9800.00,Consulting
+2025-01-17,Vendor_B,9750.00,Consulting
+2025-01-18,Shell_02,45.00,Gas
+2025-01-19,Shell_02,45.00,Gas
+2025-01-20,Shell_02,45.00,Gas
+2025-01-21,Legit_Vendor,100.00,Supplies
+2025-01-22,Legit_Vendor,100.00,Supplies
+2025-01-23,Shadow_Corp,9999.00,Equipment
+2025-01-24,Office_Depot,23.40,Paper
+2025-01-25,Uber,15.50,Ride
+2025-01-26,Amazon,100.00,Misc
+2025-01-27,Amazon,100.00,Misc
+2025-01-28,Starbucks,5.50,Coffee
+2025-01-29,Starbucks,5.50,Coffee
+2025-01-30,Delta,450.00,Flight
+2025-02-01,Hotel_A,200.00,Stay
+2025-02-02,Hotel_A,200.00,Stay
+2025-02-03,Restaurant_X,85.50,Dinner
+2025-02-04,Restaurant_X,85.50,Dinner
+2025-02-05,Software_SaaS,99.00,Subscription
+2025-02-06,Software_SaaS,99.00,Subscription
+2025-02-07,Hardware_Store,150.25,Repairs
+2025-02-08,Hardware_Store,150.25,Repairs
+2025-02-09,Consultant_X,2500.00,Fee
+2025-02-10,Consultant_X,2500.00,Fee
+2025-02-11,Taxi_Yellow,12.00,Ride
+2025-02-12,Taxi_Yellow,12.00,Ride
+2025-02-13,Online_Ad,500.00,Marketing
+2025-02-14,Online_Ad,500.00,Marketing
+2025-02-15,Server_Cost,150.00,IT
+2025-02-16,Server_Cost,150.00,IT
+2025-02-17,Coffee_Shop,4.75,Snack
+2025-02-18,Coffee_Shop,4.75,Snack
+2025-02-19,Legal_Fee,1000.00,Legal
+2025-02-20,Legal_Fee,1000.00,Legal
+2025-02-21,Cleaner,120.00,Maintenance
+2025-02-22,Cleaner,120.00,Maintenance
+2025-02-23,Office_Rent,2000.00,Rent
+2025-02-24,Office_Rent,2000.00,Rent
+2025-02-25,Water_Bill,45.60,Utilities
+2025-02-26,Water_Bill,45.60,Utilities
+2025-02-27,Electric_Bill,120.30,Utilities
+2025-02-28,Electric_Bill,120.30,Utilities
+2025-03-01,Internet,80.00,Utilities
+2025-03-02,Internet,80.00,Utilities"""
+    return sample_data
+
+col1, col2 = st.columns([2, 1])
+with col1:
+    uploaded_file = st.file_uploader("Drag and drop file here", type=['csv', 'xlsx', 'xls'])
+with col2:
+    st.markdown("<br>", unsafe_allow_html=True) # Spacer
+    st.download_button(
+        label="📥 Download Sample Data",
+        data=generate_sample_csv(),
+        file_name="sample_fraud_data.csv",
+        mime="text/csv",
+        help="Download this file to test the app immediately!"
+    )
 
 # --- STEP 2: SENSITIVITY ---
 st.header("Step 2: Detection Sensitivity")
@@ -117,7 +194,13 @@ st.caption(f"Current Setting: **{level_label}**")
 # --- MAIN LOGIC ---
 if uploaded_file:
     try:
-        df = pd.read_csv(uploaded_file)
+        # 1. LOAD DATA (CSV or EXCEL)
+        if uploaded_file.name.endswith('.csv'):
+            df = pd.read_csv(uploaded_file)
+        else:
+            # For Excel files
+            df = pd.read_excel(uploaded_file)
+            
         total_rows = len(df)
         ROW_LIMIT = 50
         
@@ -145,12 +228,12 @@ if uploaded_file:
             st.markdown("---")
 
         # --- PROCESSING ---
-        # Auto-detect columns to be helpful
+        # Auto-detect columns
         cols = df.columns.str.lower()
         date_col = df.columns[cols.str.contains('date')|cols.str.contains('time')][0] if any(cols.str.contains('date')|cols.str.contains('time')) else None
         amount_col = df.columns[cols.str.contains('amount')|cols.str.contains('value')][0] if any(cols.str.contains('amount')|cols.str.contains('value')) else None
         
-        # Fallback: Try to find vendor column, if not found use None (engine handles it)
+        # Fallback for Vendor
         vendor_col = None
         possible_vendor = df.columns[cols.str.contains('vendor')|cols.str.contains('desc')|cols.str.contains('merchant')]
         if len(possible_vendor) > 0:
@@ -181,7 +264,6 @@ if uploaded_file:
             def highlight_risk(row):
                 return ['background-color: #fee2e2' if row['risk_score'] > 0.7 else '' for _ in row]
 
-            # Pick columns to show
             show_cols = [c for c in [date_col, vendor_col, amount_col, 'risk_score'] if c]
             
             st.dataframe(
@@ -204,4 +286,4 @@ if uploaded_file:
 
     except Exception as e:
         st.error(f"Error reading file: {e}")
-        st.write("Tip: Make sure your file is a standard CSV.")
+        st.write("Tip: Make sure your file is a standard CSV or Excel file.")
