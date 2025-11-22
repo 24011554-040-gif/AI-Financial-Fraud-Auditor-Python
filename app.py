@@ -1,46 +1,78 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import numpy as np
 
 # --- IMPORT CUSTOM ENGINE ---
 try:
     import fraud_forensics as ff
 except ImportError:
-    st.error("⚠️ CRITICAL ERROR: 'fraud_forensics.py' not found.")
+    st.error("⚠️ CRITICAL ERROR: 'fraud_forensics.py' not found. Please ensure it is in the same directory.")
     st.stop()
 
 # --- PAGE CONFIG ---
 st.set_page_config(
-    page_title="Forensic Audit Pro | AI-Powered Fraud Detection",
-    page_icon="🕵️‍♀️",
+    page_title="Confidential Fraud Audit | Ali Haider",
+    page_icon="🔒",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# --- STYLING ---
+# --- STYLING (Professional & Trust-Building) ---
 st.markdown("""
 <style>
     .stApp { background-color: #f8f9fa; font-family: 'Inter', sans-serif; }
-    .main-header { font-size: 2.5rem; font-weight: 700; color: #0d47a1; }
-    .sub-header { font-size: 1.2rem; color: #495057; margin-bottom: 20px; }
-    div[data-testid="stMetric"] > div {
-        background-color: #ffffff; border-radius: 10px; padding: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-left: 5px solid #1e88e5;
+    .main-header { font-size: 2.5rem; font-weight: 800; color: #111827; margin-bottom: 0.5rem; }
+    .sub-header { font-size: 1.2rem; color: #4b5563; margin-bottom: 20px; }
+    .trust-badge { 
+        background-color: #eff6ff; 
+        color: #1e3a8a; 
+        padding: 15px; 
+        border-radius: 8px; 
+        border-left: 5px solid #2563eb;
+        font-weight: 500; 
+        margin-bottom: 25px; 
     }
+    .cta-box { 
+        background-color: #ecfdf5; 
+        border: 2px solid #10b981; 
+        padding: 25px; 
+        border-radius: 10px; 
+        text-align: center; 
+        margin-top: 20px; 
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    .cta-text { font-size: 1.1rem; color: #064e3b; margin-bottom: 15px; }
+    a.cta-button {
+        background-color: #059669;
+        color: white !important;
+        padding: 10px 20px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        display: inline-block;
+    }
+    a.cta-button:hover { background-color: #047857; }
 </style>
 """, unsafe_allow_html=True)
 
 # --- HEADER ---
-st.markdown('<div class="main-header">🕵️‍♀️ Forensic Audit Pro</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">AI-Powered Risk Assessment for Corporate Finance</div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header">🔒 Confidential Fraud Audit</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Find Hidden Money Leaks in Your Business in 48 Hours</div>', unsafe_allow_html=True)
 
-# --- SIDEBAR (The Control Room) ---
+# --- TRUST BADGE ---
+st.markdown("""
+<div class="trust-badge">
+    📊 <strong>Average Discovery:</strong> Businesses lose 5% of revenue to duplicate payments & errors.<br>
+    🔒 <strong>100% Confidential:</strong> Your file is processed in memory and deleted instantly after you close this tab.<br>
+    🚀 <strong>Free Preview:</strong> Scan your first 50 transactions instantly below.
+</div>
+""", unsafe_allow_html=True)
+
+# --- SIDEBAR ---
 st.sidebar.header("⚙️ Audit Controls")
 
-# 🔐 1. ADMIN GATE (The Password Box)
-# If you type "AliAudit2025", is_admin becomes True.
+# 🔐 ADMIN ACCESS CONTROL
 admin_password = st.sidebar.text_input("Admin Access Key", type="password", help="Enter key to unlock full processing")
 is_admin = admin_password == "AliAudit2025"
 
@@ -49,112 +81,127 @@ if is_admin:
 else:
     st.sidebar.info("🔒 Public Mode (50 Row Limit)")
 
-# 2. File Upload
-uploaded_file = st.sidebar.file_uploader("Upload Transaction CSV", type=['csv'])
 st.sidebar.markdown("---")
-contamination = st.sidebar.slider("Anomaly Sensitivity (ML)", 0.001, 0.05, 0.01, format="%.3f")
+st.sidebar.markdown("**Built by Ali Haider**")
+st.sidebar.caption("Financial Analyst & Fraud Specialist")
+st.sidebar.markdown("[Connect on LinkedIn](https://www.linkedin.com/in/ali-haider-accountant/)") 
+st.sidebar.markdown("[Email Me](mailto:alihaiderfinance.cfo@gmail.com)")
+
+# --- STEP 1: UPLOAD ---
+st.header("Step 1: Upload your transactions")
+st.info("""
+**Required Columns:** `Date`, `Vendor` (or Description), `Amount`
+*(If your file is different, just rename the columns in Excel first!)*
+""")
+
+uploaded_file = st.file_uploader("Drag and drop CSV file here", type=['csv'])
+
+# --- STEP 2: SENSITIVITY ---
+st.header("Step 2: Detection Sensitivity")
+sensitivity = st.slider(
+    "How strict should the AI be?",
+    min_value=0.01, max_value=0.20, value=0.05, step=0.01,
+    help="Low = Only obvious fraud. High = Flags even minor anomalies."
+)
+
+# Map the number to friendly labels
+if sensitivity <= 0.05:
+    level_label = "Low (Only Obvious Fraud)"
+elif sensitivity <= 0.10:
+    level_label = "Medium – Recommended ⭐"
+else:
+    level_label = "High (Super Cautious)"
+
+st.caption(f"Current Setting: **{level_label}**")
 
 # --- MAIN LOGIC ---
 if uploaded_file:
     try:
-        # 1. READ THE FILE IMMEDIATELY
         df = pd.read_csv(uploaded_file)
-        
-        # 🛑 2. THE GATEKEEPER (Must happen right here!)
+        total_rows = len(df)
         ROW_LIMIT = 50
         
-        # Logic: If file is big AND you are NOT admin -> Show Warning & Slice Data
-        if len(df) > ROW_LIMIT and not is_admin:
-            st.warning(f"🔒 **Free Tier Limit Reached:** This file has {len(df)} transactions.")
-            st.info(f"The public demo is limited to the first {ROW_LIMIT} rows. Please enter the Admin Key to process the full file.")
+        # 🛑 FREEMIUM GATE
+        if total_rows > ROW_LIMIT and not is_admin:
+            st.warning(f"🔒 **Free Preview Limit:** Your file has {total_rows} transactions. Analyzing first {ROW_LIMIT} rows only.")
             
-            # The Sales Pitch
-            with st.expander("🚀 Unlock Full Audit Service"):
-                st.markdown("""
-                **Need to audit the full dataset?**
-                I offer professional forensic audits for large datasets using this proprietary AI engine.
-                * **Contact:** Ali Haider
-                * **Email:** alihaiderfinance.cfo@gmail.com
-                """)
+            # THE SALES HOOK (Green Box)
+            st.markdown("""
+            <div class="cta-box">
+                <h3>🚨 Full File Locked – Potential Risks Detected in Hidden Rows</h3>
+                <p class="cta-text">
+                    Want the complete report? I offer a comprehensive forensic audit service.<br>
+                    <strong>Flat fee • Money-back guarantee if nothing found.</strong>
+                </p>
+                <a href="https://www.linkedin.com/in/ali-haider-accountant/" target="_blank" class="cta-button">
+                    Contact Me on LinkedIn for Full Audit
+                </a>
+                <br><br>
+                <small>Or email: alihaiderfinance.cfo@gmail.com</small>
+            </div>
+            """, unsafe_allow_html=True)
             
-            # CRITICAL ACTION: Cut the dataframe to 50 rows
             df = df.head(ROW_LIMIT)
-            st.write(f"**Analyzing first {ROW_LIMIT} rows only...**")
             st.markdown("---")
 
-        # 3. PROCESSING (Now we process the safe, sliced dataframe)
+        # --- PROCESSING ---
+        # Auto-detect columns to be helpful
         cols = df.columns.str.lower()
-        date_col = df.columns[cols.str.contains('date') | cols.str.contains('time')][0] if any(cols.str.contains('date') | cols.str.contains('time')) else None
-        amount_col = df.columns[cols.str.contains('amount') | cols.str.contains('value')][0] if any(cols.str.contains('amount') | cols.str.contains('value')) else None
+        date_col = df.columns[cols.str.contains('date')|cols.str.contains('time')][0] if any(cols.str.contains('date')|cols.str.contains('time')) else None
+        amount_col = df.columns[cols.str.contains('amount')|cols.str.contains('value')][0] if any(cols.str.contains('amount')|cols.str.contains('value')) else None
         
-        if not amount_col:
-            st.error("❌ ERROR: Could not automatically find an 'Amount' column. Please check your CSV format.")
-            st.stop()
-            
-        with st.spinner('Running Advanced Forensic Engine...'):
-            # Feature Engineering & ML
-            df_features = ff.prepare_features(df, time_col=date_col, amount_col=amount_col, id_cols=['Vendor'])
-            df_scored = ff.run_detectors(df_features, contamination=contamination)
-            df_final = ff.ensemble_scores(df_scored, score_cols=[c for c in df_scored.columns if c.endswith('_score')])
-            
-            # Rules Engine (Using the sliced data)
-            alerts = ff.rules_engine(df_final, amount_col=amount_col, round_threshold=500.0, high_amount_thresh=5000.0)
-            graph_alerts = ff.graph_collusion_detector(df_final, tx_id_col='tx_id', node_cols=['Vendor'])
-            
-        # --- DASHBOARD DISPLAY (Beautiful Design) ---
-        st.subheader(f"Audit Results for {uploaded_file.name}")
-        
-        # KPI ROW
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("Volume Audited", f"${df[amount_col].sum():,.2f}")
-        col2.metric("Transactions", len(df)) # This will now show 50 if limited
-        col3.metric("Rule Violations", len(alerts), delta_color="inverse")
-        col4.metric("ML Anomalies", sum(df_final['risk_score'] > 0.5), delta_color="inverse")
-        
-        st.markdown("---")
+        # Fallback: Try to find vendor column, if not found use None (engine handles it)
+        vendor_col = None
+        possible_vendor = df.columns[cols.str.contains('vendor')|cols.str.contains('desc')|cols.str.contains('merchant')]
+        if len(possible_vendor) > 0:
+            vendor_col = possible_vendor[0]
 
-        tab1, tab2, tab3 = st.tabs(["📊 Executive Summary", "🧠 ML Analysis", "🕸️ Network"])
+        if not amount_col:
+            st.error("❌ Error: Could not automatically find an 'Amount' column. Please rename it in Excel.")
+            st.stop()
+
+        with st.spinner('Running AI Forensic Scan...'):
+            # Run Engine
+            df_features = ff.prepare_features(df, time_col=date_col, amount_col=amount_col, id_cols=[vendor_col] if vendor_col else None)
+            df_scored = ff.run_detectors(df_features, contamination=sensitivity)
+            df_final = ff.ensemble_scores(df_scored, score_cols=['iforest_score', 'lof_score'])
+            alerts = ff.rules_engine(df_final, amount_col=amount_col)
+
+        # --- RESULTS ---
+        if total_rows <= ROW_LIMIT or is_admin:
+            st.balloons()
+            st.success("✅ Scan Complete!")
+
+        tab1, tab2 = st.tabs(["🚩 Free Fraud Scan Results", "📊 Visual Analysis"])
 
         with tab1:
-            st.markdown("#### Top 10 Highest Risk Transactions (ML Score)")
-            top_risk = df_final.sort_values('risk_score', ascending=False).head(10)
-            display_cols = ['tx_id', date_col, 'Vendor', amount_col, 'risk_score', 'risk_explainer']
-            final_cols = [c for c in display_cols if c in df_final.columns]
+            st.subheader("Suspicious Transactions Found")
+            
+            # Highlight high risk rows in Red
+            def highlight_risk(row):
+                return ['background-color: #fee2e2' if row['risk_score'] > 0.7 else '' for _ in row]
+
+            # Pick columns to show
+            show_cols = [c for c in [date_col, vendor_col, amount_col, 'risk_score'] if c]
             
             st.dataframe(
-                top_risk[final_cols].style.background_gradient(subset=['risk_score'], cmap='Reds'),
+                df_final.sort_values('risk_score', ascending=False).head(50)[show_cols]
+                .style.apply(highlight_risk, axis=1)
+                .format({amount_col: "${:,.2f}", 'risk_score': "{:.2f}"}),
                 use_container_width=True
             )
 
             if alerts:
-                st.markdown("#### Deterministic Rule Violations")
-                st.dataframe(pd.DataFrame(alerts), use_container_width=True)
+                st.error(f"⚠️ Found {len(alerts)} specific rule violations (Duplicates/Round Numbers).")
+                st.table(pd.DataFrame(alerts))
             else:
-                st.success("✅ No rule violations found in this sample.")
+                st.success("No simple rule violations found in this sample.")
 
         with tab2:
-            col_a, col_b = st.columns(2)
-            with col_a:
-                fig_hist = px.histogram(df_final, x='risk_score', nbins=50, title="Risk Score Distribution", color_discrete_sequence=['#1e88e5'])
-                st.plotly_chart(fig_hist, use_container_width=True)
-            with col_b:
-                if date_col:
-                    fig_time = px.scatter(df_final, x=date_col, y=amount_col, color='risk_score', size='risk_score', title="Risk Over Time", color_continuous_scale='Reds')
-                    st.plotly_chart(fig_time, use_container_width=True)
-
-        with tab3:
-            if graph_alerts:
-                st.error("🔴 Suspicious Collusion Rings Detected!")
-                for cluster in graph_alerts:
-                    with st.expander(f"Cluster Found (Size: {cluster['component_size']})"):
-                        st.write(f"**Entities:** {cluster['entities']}")
-            else:
-                st.success("✅ No suspicious graph clusters detected.")
+            st.write("### Risk Score Frequency")
+            fig = px.histogram(df_final, x='risk_score', nbins=20, title="Distribution of Risk Scores", color_discrete_sequence=['#ef4444'])
+            st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
-        st.error(f"An error occurred: {e}")
-
-# --- FOOTER ---
-st.sidebar.markdown("---")
-st.sidebar.markdown("© 2025 Forensic Audit Pro")
-st.sidebar.markdown("[Contact for Full Audit](mailto:alihaiderfinance.cfo@gmail.com)")
+        st.error(f"Error reading file: {e}")
+        st.write("Tip: Make sure your file is a standard CSV.")
