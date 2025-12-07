@@ -139,9 +139,17 @@ def lof_detector(df: pd.DataFrame, feature_cols: List[str], n_neighbors: int = 2
     We invert and normalize to get high=anomaly.
     """
     X = df[feature_cols].fillna(0).values
+
+    # Adjust neighbors for small datasets to avoid warnings/errors
+    n_samples = len(df)
+    if n_samples <= 1:
+        return pd.Series(0.0, index=df.index)
+
+    actual_neighbors = max(1, min(n_neighbors, n_samples - 1))
+    
     scaler = RobustScaler()
     Xs = scaler.fit_transform(X)
-    lof = LocalOutlierFactor(n_neighbors=n_neighbors, novelty=False, contamination='auto')
+    lof = LocalOutlierFactor(n_neighbors=actual_neighbors, novelty=False, contamination='auto')
     # fit_predict returns -1 for outliers; we use negative_outlier_factor_ (need refit style)
     lof.fit(Xs)
     raw = -lof.negative_outlier_factor_
