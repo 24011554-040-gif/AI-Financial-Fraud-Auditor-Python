@@ -344,18 +344,35 @@ if menu == "Dashboard":
                 if total_rows > ROW_LIMIT and not is_admin:
                     is_limited = True
                     display_df = df.head(ROW_LIMIT)
+                    # We do not stop here, we process the limited data but warn the user
 
-                # Column Detection
+                # --- SMART COLUMN MAPPING ---
+                # Attempt to find standard columns automatically
                 cols = display_df.columns.str.lower()
-                date_col = display_df.columns[cols.str.contains('date')|cols.str.contains('time')][0] if any(cols.str.contains('date')|cols.str.contains('time')) else None
-                amount_col = display_df.columns[cols.str.contains('amount')|cols.str.contains('value')][0] if any(cols.str.contains('amount')|cols.str.contains('value')) else None
-                vendor_col = None
-                possible_vendor = display_df.columns[cols.str.contains('vendor')|cols.str.contains('desc')|cols.str.contains('merchant')]
-                if len(possible_vendor) > 0:
-                    vendor_col = possible_vendor[0]
+                
+                # 1. DATE Mapping
+                possible_date = [c for c in display_df.columns if 'date' in c.lower() or 'time' in c.lower() or 'day' in c.lower()]
+                date_col = possible_date[0] if possible_date else None
+                
+                # 2. AMOUNT Mapping
+                possible_amount = [c for c in display_df.columns if 'amount' in c.lower() or 'value' in c.lower() or 'cost' in c.lower() or 'price' in c.lower()]
+                amount_col = possible_amount[0] if possible_amount else None
+                
+                # 3. VENDOR Mapping
+                possible_vendor = [c for c in display_df.columns if 'vendor' in c.lower() or 'desc' in c.lower() or 'merchant' in c.lower() or 'party' in c.lower()]
+                vendor_col = possible_vendor[0] if possible_vendor else None
 
+                # Fallback: Manual Column Selector if Auto-detection fails
+                if not date_col or not amount_col:
+                    st.warning("⚠️ Could not automatically detect required columns. Please map them manually below.")
+                    with st.expander("🔧 Manual Column Mapping", expanded=True):
+                        c_map1, c_map2, c_map3 = st.columns(3)
+                        date_col = c_map1.selectbox("Date Column", display_df.columns, index=display_df.columns.get_loc(date_col) if date_col else 0)
+                        amount_col = c_map2.selectbox("Amount Column", display_df.columns, index=display_df.columns.get_loc(amount_col) if amount_col else 0)
+                        vendor_col = c_map3.selectbox("Vendor/Description Column", display_df.columns, index=display_df.columns.get_loc(vendor_col) if vendor_col else 0)
+                
                 if not amount_col:
-                    st.error("❌ 'Amount' column not detected. Please verify column headers.")
+                    st.error("❌ Cannot proceed without an Amount column.")
                     st.stop()
 
                 # --- AI EXECUTION ---
@@ -457,7 +474,7 @@ if menu == "Dashboard":
                         )
                         st.plotly_chart(fig_3d, use_container_width=True)
                     else:
-                        st.info("Time data required for 3D visualization.")
+                        st.info("Time data required for 3D visualization. Ensure your Date column is correctly mapped.")
 
                 with tab2:
                     c1, c2 = st.columns(2)
@@ -520,7 +537,7 @@ if menu == "Dashboard":
 
             except Exception as e:
                 st.error(f"Processing Error: {str(e)}")
-                st.info("Ensure your file format is correct.")
+                st.info("Ensure your file has valid columns. You can use the 'Manual Column Mapping' section if auto-detection fails.")
 
 elif menu == "Methodology":
     st.markdown("""
