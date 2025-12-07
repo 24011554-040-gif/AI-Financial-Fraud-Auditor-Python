@@ -265,13 +265,26 @@ if menu == "🔍 Audit Dashboard":
                     st.stop()
                     
                 total_rows = len(df)
-                ROW_LIMIT = 50
+                ROW_LIMIT = 60
                 
                 # Freemium Logic
                 display_df = df.copy()
                 if total_rows > ROW_LIMIT and not is_admin:
                     st.warning(f"🔒 Preview Mode: Analyzing first {ROW_LIMIT} of {total_rows} rows.")
                     display_df = df.head(ROW_LIMIT)
+                    
+                    # Call to Action for Full Unlock
+                    st.markdown("""
+                    <div style="background-color: #ECFDF5; border: 1px solid #10B981; padding: 20px; border-radius: 10px; margin-bottom: 20px; text-align: center;">
+                        <h3 style="color: #064E3B; margin-top: 0;">🔓 Unlock Full Audit Capabilities</h3>
+                        <p style="color: #047857;">Your file contains more than 60 transactions. To analyze the full dataset and uncover deep insights:</p>
+                        <a href="https://www.linkedin.com/in/ali-haider-accountant/" target="_blank" style="background-color: #059669; color: white; padding: 10px 20px; border-radius: 5px; text-decoration: none; font-weight: bold; display: inline-block; margin: 10px;">
+                            Contact Me on LinkedIn
+                        </a>
+                        <br>
+                        <small style="color: #065F46;">Or email: <a href="mailto:alihaiderfinance.cfo@gmail.com" style="color: #065F46; font-weight: bold;">alihaiderfinance.cfo@gmail.com</a></small>
+                    </div>
+                    """, unsafe_allow_html=True)
                 
                 # Detect Columns
                 cols = display_df.columns.str.lower()
@@ -344,19 +357,52 @@ if menu == "🔍 Audit Dashboard":
                 with tab_visuals:
                     c1, c2 = st.columns(2)
                     with c1:
-                        st.markdown("**Risk Score Distribution**")
-                        fig_hist = px.histogram(df_final, x='risk_score', nbins=20, color_discrete_sequence=['#3B82F6'])
-                        fig_hist.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-                        st.plotly_chart(fig_hist, use_container_width=True)
-                    
+                        st.markdown("**Risk Score Distribution (3D)**")
+                        # 3D Scatter Plot: Amount vs Risk Score vs Hour
+                        if 'hour' in df_final.columns:
+                            fig_3d = px.scatter_3d(
+                                df_final,
+                                x='hour',
+                                y='risk_score',
+                                z=amount_col,
+                                color='risk_score',
+                                color_continuous_scale='RdBu_r',
+                                title="3D Risk Analysis: Time vs Risk vs Amount",
+                                labels={'hour': 'Hour of Day', 'risk_score': 'Risk Score'},
+                                height=500
+                            )
+                            fig_3d.update_layout(margin=dict(l=0, r=0, b=0, t=30))
+                            st.plotly_chart(fig_3d, use_container_width=True)
+                        else:
+                            st.info("Time data not available for 3D plot.")
+
                     with c2:
+                        st.markdown("**Vendor Risk Landscape**")
                         if vendor_col:
-                            st.markdown("**Top Risky Vendors**")
-                            # Avg risk per vendor
-                            vendor_risk = df_final.groupby(vendor_col)['risk_score'].mean().sort_values(ascending=False).head(10)
-                            fig_bar = px.bar(vendor_risk, orientation='h', color_discrete_sequence=['#EF4444'])
-                            fig_bar.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-                            st.plotly_chart(fig_bar, use_container_width=True)
+                            # Enhanced Bubble Chart for Multi-dimensional view
+                            vendor_stats = df_final.groupby(vendor_col).agg({
+                                'risk_score': 'mean',
+                                amount_col: 'sum',
+                                'tx_id': 'count'
+                            }).reset_index()
+                            
+                            # Filter top 20 for readability
+                            vendor_stats = vendor_stats.sort_values('risk_score', ascending=False).head(20)
+                            
+                            fig_bubble = px.scatter(
+                                vendor_stats,
+                                x='risk_score',
+                                y=amount_col,
+                                size='tx_id',
+                                color='risk_score',
+                                hover_name=vendor_col,
+                                title="Vendor Risk Bubble Chart (Size = Tx Count)",
+                                color_continuous_scale='Reds',
+                                height=500
+                            )
+                            st.plotly_chart(fig_bubble, use_container_width=True)
+                        else:
+                            st.info("Vendor data required for risk landscape.")
                 
                 with tab_details:
                     st.dataframe(df_final)
