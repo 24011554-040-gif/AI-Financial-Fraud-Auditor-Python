@@ -268,11 +268,11 @@ with st.sidebar:
         
     st.markdown("---")
     st.markdown("""
-    <div style='background: #EFF6FF; padding: 15px; border-radius: 10px;'>
-        <small style='color: #1E3A8A; font-weight: 600;'>STATUS</small><br>
-        <span class='status-pill status-safe'>● System Online</span>
-    </div>
-    """, unsafe_allow_html=True)
+<div style='background: #EFF6FF; padding: 15px; border-radius: 10px;'>
+    <small style='color: #1E3A8A; font-weight: 600;'>STATUS</small><br>
+    <span class='status-pill status-safe'>● System Online</span>
+</div>
+""", unsafe_allow_html=True)
 
 # --- MAIN APPLICATION LOGIC ---
 
@@ -432,12 +432,12 @@ if menu == "Dashboard":
             Preview Mode limited to 60 transactions. Your file contains <strong>{total}</strong> rows.
         </p>
         <div style="margin-top: 20px;">
-            <a href="https://www.linkedin.com/in/ali-haider-accountant/" target="_blank"
+            <a href="https://www.linkedin.com/in/ali-haider-accountant/" target="_blank" 
                 style="background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 6px rgba(5, 150, 105, 0.2);">
                 Contact for Full Audit
             </a>
             <span style="margin: 0 15px; color: #065F46; font-weight: 500;">OR</span>
-            <a href="mailto:alihaiderfinance.cfo@gmail.com"
+            <a href="mailto:alihaiderfinance.cfo@gmail.com" 
                 style="color: #047857; text-decoration: underline; font-weight: 600;">
                 alihaiderfinance.cfo@gmail.com
             </a>
