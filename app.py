@@ -81,7 +81,6 @@ st.markdown("""
         box-shadow: var(--shadow-sm);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         margin-bottom: 1.5rem;
-        overflow: hidden;
         position: relative;
     }
     
@@ -313,11 +312,20 @@ if menu == "Dashboard":
         if not uploaded_file:
             # EMPTY STATE WITH ILLUSTRATION PLACEHOLDER
             st.markdown("""
-            <div class="glass-card" style="height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; border-style: dashed; border-color: #CBD5E1;">
+            <div class="glass-card" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-style: dashed; border-color: #CBD5E1;">
                 <div>
                     <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📊</div>
                     <h3 style="color: #94A3B8;">Awaiting Dataset</h3>
                     <p style="color: #94A3B8; font-size: 0.9rem;">Upload file to trigger the Neural Engine.</p>
+                    <br>
+                    <div style="text-align: left; background: #F1F5F9; padding: 15px; border-radius: 8px; font-size: 0.85rem; color: #64748B;">
+                        <strong>Required Columns:</strong>
+                        <ul style="margin-top: 5px; margin-bottom: 0;">
+                            <li>📅 <strong>Date</strong> (e.g., 'Transaction Date', 'Time')</li>
+                            <li>💰 <strong>Amount</strong> (e.g., 'Value', 'Cost', 'Price')</li>
+                            <li>🏢 <strong>Vendor</strong> (Optional, e.g., 'Merchant', 'Description')</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -380,7 +388,8 @@ if menu == "Dashboard":
                     df_features = ff.prepare_features(display_df, time_col=date_col, amount_col=amount_col, id_cols=[vendor_col] if vendor_col else None)
                     df_scored = ff.run_detectors(df_features, contamination=sensitivity)
                     df_final = ff.ensemble_scores(df_scored, score_cols=['iforest_score', 'lof_score'])
-                    alerts = ff.rules_engine(df_final, amount_col=amount_col)
+                    # Pass vendor_col dynamically to rules_engine
+                    alerts = ff.rules_engine(df_final, amount_col=amount_col, vendor_col=vendor_col)
 
                 # --- COCKPIT DASHBOARD ---
                 
@@ -544,7 +553,13 @@ elif menu == "Methodology":
     <div style="max-width: 800px; margin: 0 auto; padding-top: 2rem;">
         <h1>The Engine Under the Hood</h1>
         <p>Our hybrid detection system combines traditional rule-based forensic accounting with state-of-the-art unsupervised machine learning.</p>
-        
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
         <div class="glass-card">
             <h3>1. Ensemble Machine Learning</h3>
             <p>We do not rely on a single model. We aggregate votes from:</p>
@@ -553,7 +568,10 @@ elif menu == "Methodology":
                 <li><strong>Local Outlier Factor (LOF):</strong> Measures the local density deviation of a data point with respect to its neighbors.</li>
             </ul>
         </div>
-        
+        """, unsafe_allow_html=True)
+
+    with col2:
+        st.markdown("""
         <div class="glass-card">
             <h3>2. Digital Fingerprinting</h3>
             <p>We generate a 15-dimensional vector for every transaction, analyzing:</p>
@@ -563,8 +581,7 @@ elif menu == "Methodology":
                 <li><strong>Global & Local Z-Scores:</strong> Deviation from both the vendor's history and the global ledger.</li>
             </ul>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)
 
 elif menu == "Privacy Policy":
     st.markdown("""
@@ -582,7 +599,9 @@ elif menu == "Privacy Policy":
         </div>
         
         <br>
-        <h3>Disclaimer</h3>
-        <p>This tool is an automated analytical aid and does not constitute a certified financial audit or legal opinion. FraudGuard Analytics accepts no liability for decisions made based on these outputs.</p>
+        <div class="glass-card">
+            <h3>Disclaimer</h3>
+            <p>This tool is an automated analytical aid and does not constitute a certified financial audit or legal opinion. FraudGuard Analytics accepts no liability for decisions made based on these outputs.</p>
+        </div>
     </div>
     """, unsafe_allow_html=True)

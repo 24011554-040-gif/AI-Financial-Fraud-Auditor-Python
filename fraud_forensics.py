@@ -59,50 +59,84 @@ def prepare_features(df: pd.DataFrame,
         count_last_1d, sum_last_1d (approx using groupby + transform)
     """
     df = df.copy()
-    df = parse_datetime(df, time_col)
+    
+    # 1. Parse Date
+    if time_col and time_col in df.columns:
+        df = parse_datetime(df, time_col)
+    
+    # 2. Clean amount common formats
+    if amount_col and amount_col in df.columns:
+        # Check if already numeric, otherwise clean
+        if not pd.api.types.is_numeric_dtype(df[amount_col]):
+            df[amount_col] = df[amount_col].astype(str).str.replace(r'[$,]', '', regex=True)
+            df[amount_col] = pd.to_numeric(df[amount_col], errors='coerce')
 
-    # Clean amount common formats
-    if amount_col in df.columns:
-        df[amount_col] = df[amount_col].astype(str).str.replace(r'[$,]', '', regex=True)
-        df[amount_col] = pd.to_numeric(df[amount_col], errors='coerce')
-
-    # Basic time features
-    if time_col in df.columns:
-        df['hour'] = df[time_col].dt.hour
-        df['weekday'] = df[time_col].dt.weekday
+    # 3. Basic time features
+    if time_col and time_col in df.columns:
+        # We need a valid datetime to extract hour/weekday
+        # Only process rows where date conversion succeeded
+        valid_dates = pd.notna(df[time_col])
+        df.loc[valid_dates, 'hour'] = df.loc[valid_dates, time_col].dt.hour
+        df.loc[valid_dates, 'weekday'] = df.loc[valid_dates, time_col].dt.weekday
+        
+        # Fill NaNs if any (optional, or just leave as NaN)
+        df['hour'] = df['hour'].fillna(0)
+        df['weekday'] = df['weekday'].fillna(0)
+        
         df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / 24)
         df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / 24)
-
-    # Amount transformations
-    df['amount_log'] = np.log1p(df[amount_col].clip(lower=0))
-    df['amount_med'] = df.groupby('Vendor')[amount_col].transform('median') if 'Vendor' in df.columns else df[amount_col].median()
-    # vendor MAD
-    if 'Vendor' in df.columns:
-        vendor_mad = df.groupby('Vendor')[amount_col].transform(lambda x: (x - x.median()).abs().median())
-        vendor_mad = vendor_mad.replace(0, 1.0)
-        df['vendor_mad_z'] = 0.6745 * (df[amount_col] - df['amount_med']) / vendor_mad
     else:
-        df['vendor_mad_z'] = robust_zscore(df[amount_col])
+        # If no time col, we must synthesize or skip time features to avoid crashes
+        df['hour'] = 12
+        df['weekday'] = 0
+        df['hour_sin'] = 0.0
+        df['hour_cos'] = 0.0
 
-    # Global robust zscore
-    df['global_mad_z'] = robust_zscore(df[amount_col])
+    # 4. Amount transformations
+    if amount_col and amount_col in df.columns:
+        df['amount_log'] = np.log1p(df[amount_col].fillna(0).clip(lower=0))
+        
+        # Check for Vendor column existence (dynamic)
+        vendor_col = None
+        if id_cols and len(id_cols) > 0:
+             # Assume first ID col is "Vendor-like" for grouping
+             vendor_col = id_cols[0]
+        
+        if vendor_col and vendor_col in df.columns:
+            df['amount_med'] = df.groupby(vendor_col)[amount_col].transform('median')
+            
+            # vendor MAD
+            vendor_mad = df.groupby(vendor_col)[amount_col].transform(lambda x: (x - x.median()).abs().median())
+            vendor_mad = vendor_mad.replace(0, 1.0)
+            df['vendor_mad_z'] = 0.6745 * (df[amount_col] - df['amount_med']) / vendor_mad
+            
+            # Vendor Freq
+            freq = df[vendor_col].value_counts(normalize=True)
+            df['vendor_freq'] = df[vendor_col].map(freq).fillna(0)
 
-    # Frequency encoding for Vendor (safe, no label leakage)
-    if 'Vendor' in df.columns:
-        freq = df['Vendor'].value_counts(normalize=True)
-        df['vendor_freq'] = df['Vendor'].map(freq).fillna(0)
+        else:
+            # Fallback if no vendor/grouping
+            df['amount_med'] = df[amount_col].median()
+            df['vendor_mad_z'] = robust_zscore(df[amount_col])
+            df['vendor_freq'] = 0.0
+        
+        # Global robust zscore
+        df['global_mad_z'] = robust_zscore(df[amount_col])
+        
+        # EWMA of amount (global)
+        df['amount_ewma_0.2'] = df[amount_col].ewm(alpha=0.2, adjust=False).mean()
 
-    # EWMA of amount (global)
-    df['amount_ewma_0.2'] = df[amount_col].ewm(alpha=0.2, adjust=False).mean()
-
-    # Simple per-id velocity (if id provided)
-    if id_cols:
+    # 5. Simple per-id velocity (if id provided)
+    if id_cols and time_col in df.columns:
         for idc in id_cols:
             if idc in df.columns:
-                grp = df.sort_values(time_col).groupby(idc)
-                # approximate counts and sums in last 24h using expanding and a window flag (cheap)
-                df[f'{idc}_count'] = grp[amount_col].transform('count')
-                df[f'{idc}_sum'] = grp[amount_col].transform('sum')
+                # Need sorting for rolling/groupby ops
+                try:
+                    grp = df.sort_values(time_col).groupby(idc)
+                    df[f'{idc}_count'] = grp[amount_col].transform('count')
+                    df[f'{idc}_sum'] = grp[amount_col].transform('sum')
+                except:
+                    pass
 
     # Keep a canonical transaction id for graph usage
     if 'tx_id' not in df.columns:
@@ -126,6 +160,9 @@ def isolation_forest_detector(df: pd.DataFrame, feature_cols: List[str],
     Returns normalized anomaly score in [0,1] where 1 is most anomalous.
     """
     X = df[feature_cols].fillna(0).values
+    if len(X) == 0:
+        return pd.Series(dtype=float)
+        
     scaler = RobustScaler()
     Xs = scaler.fit_transform(X)
     clf = IsolationForest(n_estimators=200, contamination=contamination, random_state=random_state)
@@ -139,7 +176,7 @@ def lof_detector(df: pd.DataFrame, feature_cols: List[str], n_neighbors: int = 2
     We invert and normalize to get high=anomaly.
     """
     X = df[feature_cols].fillna(0).values
-
+    
     # Adjust neighbors for small datasets to avoid warnings/errors
     n_samples = len(df)
     if n_samples <= 1:
@@ -163,6 +200,9 @@ def autoencoder_detector(df: pd.DataFrame, feature_cols: List[str], epochs: int 
     if not _HAS_KERAS:
         return None
     X = df[feature_cols].fillna(0).values
+    if len(X) == 0:
+        return None
+
     scaler = RobustScaler()
     Xs = scaler.fit_transform(X)
     input_dim = Xs.shape[1]
@@ -224,67 +264,53 @@ def graph_collusion_detector(df: pd.DataFrame,
 # ---------------------------
 def rules_engine(df: pd.DataFrame,
                  amount_col: str = 'Amount',
+                 vendor_col: Optional[str] = 'Vendor',
                  high_amount_thresh: float = 5000.0,
                  round_threshold: float = 500.0) -> List[Dict]:
     """
-    Existing simple rules and additional ones:
+    Rules:
     - duplicate tx by Vendor+Amount (exact)
     - round numbers above round_threshold
     - high value above high_amount_thresh
-    - impossible travel if lat/lon + previous tx exists (not implemented unless lat/lon present)
-    Returns list of alert dicts.
     """
     alerts = []
-    # Duplicates
-    if {'Vendor', amount_col}.issubset(df.columns):
-        dup = df[df.duplicated(subset=['Vendor', amount_col], keep=False)]
+    
+    # 1. Duplicates
+    # Only run if we have a Vendor column (or description) to pair with Amount
+    if vendor_col and vendor_col in df.columns and amount_col in df.columns:
+        dup = df[df.duplicated(subset=[vendor_col, amount_col], keep=False)]
         for idx, row in dup.iterrows():
-            alerts.append({'tx_id': row.get('tx_id'), 'type': 'duplicate', 'severity': 'high',
-                           'note': f"Duplicate {amount_col} to {row.get('Vendor')} - ${row.get(amount_col)}"})
+            alerts.append({
+                'tx_id': row.get('tx_id'),
+                'type': 'duplicate',
+                'severity': 'high',
+                'note': f"Duplicate {amount_col} to {row.get(vendor_col)} - ${row.get(amount_col)}"
+            })
 
-    # Round numbers
+    # 2. Round numbers & High Value
     if amount_col in df.columns:
-        round_mask = (df[amount_col] % 1 == 0) & (df[amount_col] >= round_threshold)
-        for idx, row in df[round_mask].iterrows():
-            alerts.append({'tx_id': row.get('tx_id'), 'type': 'round_amount', 'severity': 'medium',
-                           'note': f"Round amount ${row.get(amount_col)}"})
+        # Round numbers
+        # Filter for non-nulls
+        valid_amounts = df[df[amount_col].notna()]
+        round_mask = (valid_amounts[amount_col] % 1 == 0) & (valid_amounts[amount_col] >= round_threshold)
+        for idx, row in valid_amounts[round_mask].iterrows():
+            alerts.append({
+                'tx_id': row.get('tx_id'),
+                'type': 'round_amount',
+                'severity': 'medium',
+                'note': f"Round amount ${row.get(amount_col)}"
+            })
 
         # High value
-        high_mask = df[amount_col] >= high_amount_thresh
-        for idx, row in df[high_mask].iterrows():
-            alerts.append({'tx_id': row.get('tx_id'), 'type': 'high_value', 'severity': 'high',
-                           'note': f"High value ${row.get(amount_col)} >= threshold {high_amount_thresh}"})
+        high_mask = valid_amounts[amount_col] >= high_amount_thresh
+        for idx, row in valid_amounts[high_mask].iterrows():
+            alerts.append({
+                'tx_id': row.get('tx_id'),
+                'type': 'high_value',
+                'severity': 'high',
+                'note': f"High value ${row.get(amount_col)} >= threshold {high_amount_thresh}"
+            })
 
-    # Impossible travel (requires lat/lon & timestamp & per-entity grouping)
-    if {'lat', 'lon', 'Date', 'Card'}.issubset(df.columns):
-        df_sorted = df.sort_values('Date')
-        grp = df_sorted.groupby('Card')
-        for card, g in grp:
-            g = g.reset_index(drop=True)
-            for i in range(1, len(g)):
-                t0 = g.loc[i-1, 'Date']
-                t1 = g.loc[i, 'Date']
-                if pd.isna(t0) or pd.isna(t1): 
-                    continue
-                hours = (t1 - t0).total_seconds() / 3600
-                if hours <= 0: 
-                    continue
-                # haversine
-                lat1, lon1 = g.loc[i-1, 'lat'], g.loc[i-1, 'lon']
-                lat2, lon2 = g.loc[i, 'lat'], g.loc[i, 'lon']
-                if pd.isna(lat1) or pd.isna(lat2): 
-                    continue
-                # simple distance in km
-                R = 6371.0
-                phi1, phi2 = np.radians([lat1, lat2])
-                dphi = np.radians(lat2 - lat1)
-                dlambda = np.radians(lon2 - lon1)
-                a = np.sin(dphi/2)**2 + np.cos(phi1)*np.cos(phi2)*np.sin(dlambda/2)**2
-                dist = 2 * R * np.arcsin(np.sqrt(a))
-                speed = dist / (hours + 1e-9)
-                if speed > 1000:  # impossible travel threshold km/h
-                    alerts.append({'tx_id': g.loc[i, 'tx_id'], 'type': 'impossible_travel', 'severity': 'high',
-                                   'note': f"Impossible travel: {dist:.1f}km in {hours:.2f}h (~{speed:.1f} km/h)"})
     return alerts
 
 # ---------------------------
@@ -296,19 +322,39 @@ def ensemble_scores(df: pd.DataFrame, score_cols: List[str], weights: Optional[L
     Also creates a simple explanation string with top contributing score(s).
     """
     df = df.copy()
+    
+    # Validate columns exist
+    valid_cols = [c for c in score_cols if c in df.columns]
+    if not valid_cols:
+        df[out_col] = 0.0
+        df['risk_explainer'] = "No scores"
+        return df
+
     scaler = MinMaxScaler()
-    S = df[score_cols].fillna(0).values
+    S = df[valid_cols].fillna(0).values
     if S.ndim == 1:
         S = S.reshape(-1, 1)
+    
+    # If S is empty
+    if S.shape[0] == 0:
+        df[out_col] = 0.0
+        df['risk_explainer'] = ""
+        return df
+        
     S_norm = scaler.fit_transform(S)
     if weights is None:
         weights = [1.0] * S_norm.shape[1]
+    
+    # Adjust weights to match valid_cols length
+    weights = weights[:len(valid_cols)]
     weights = np.array(weights) / max(1e-9, sum(weights))
+    
     ensemble = S_norm.dot(weights)
     df[out_col] = ensemble
+    
     # Explanation: top scoring method per transaction
     best_idx = np.argmax(S_norm * weights, axis=1)
-    df['risk_explainer'] = [f"{score_cols[i]}={float(S_norm[j, i]):.3f}" for j, i in enumerate(best_idx)]
+    df['risk_explainer'] = [f"{valid_cols[i]}={float(S_norm[j, i]):.3f}" for j, i in enumerate(best_idx)]
     return df
 
 # ---------------------------
@@ -329,31 +375,22 @@ def run_detectors(df: pd.DataFrame,
     if feature_cols is None:
         possible = ['Amount', 'amount_log', 'vendor_mad_z', 'global_mad_z', 'vendor_freq', 'amount_ewma_0.2', 'hour_sin', 'hour_cos']
         feature_cols = [c for c in possible if c in df.columns]
+    
+    # If still no features, cannot run
     if len(feature_cols) == 0:
-        raise ValueError("No feature columns available for detectors. Run prepare_features first or pass feature_cols.")
+        # Just return 0 scores
+        df['iforest_score'] = 0.0
+        df['lof_score'] = 0.0
+        return df
+
     df['iforest_score'] = isolation_forest_detector(df, feature_cols, contamination=contamination)
     try:
         df['lof_score'] = lof_detector(df, feature_cols)
     except Exception:
         df['lof_score'] = 0.0
+        
     ae_score = autoencoder_detector(df, feature_cols) if _HAS_KERAS else None
     if ae_score is not None:
         df['ae_score'] = ae_score
+        
     return df
-
-# ---------------------------
-# Quick CLI demo when run directly
-# ---------------------------
-if __name__ == "__main__":
-    # Minimal demo (synthetic)
-    df_demo = pd.DataFrame({
-        'Date': pd.date_range('2025-01-01', periods=200, freq='H'),
-        'Vendor': np.random.choice(['Amazon','Walmart','Uber','Shell','VendorX'], size=200),
-        'Amount': np.concatenate([np.random.randint(10,2000, 195), [5000, 5000, 10000, 3000, 2500]])
-    })
-    df_demo = prepare_features(df_demo, time_col='Date', amount_col='Amount')
-    df_demo = run_detectors(df_demo)
-    df_demo = ensemble_scores(df_demo, score_cols=[c for c in df_demo.columns if c.endswith('_score')])
-    alerts = rules_engine(df_demo)
-    print("Top risk txs:\n", df_demo.sort_values('risk_score', ascending=False).head(10)[['tx_id','Amount','risk_score','risk_explainer']])
-    print("Rule alerts sample:", alerts[:5])
