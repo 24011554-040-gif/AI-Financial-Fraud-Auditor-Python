@@ -319,7 +319,7 @@ def rules_engine(df: pd.DataFrame,
 def ensemble_scores(df: pd.DataFrame, score_cols: List[str], weights: Optional[List[float]] = None, out_col: str = 'risk_score') -> pd.DataFrame:
     """
     Normalizes the provided detector score columns and produces a weighted ensemble.
-    Also creates a simple explanation string with top contributing score(s).
+    Also creates a detailed explanation string with top contributing score(s).
     """
     df = df.copy()
     
@@ -354,7 +354,31 @@ def ensemble_scores(df: pd.DataFrame, score_cols: List[str], weights: Optional[L
     
     # Explanation: top scoring method per transaction
     best_idx = np.argmax(S_norm * weights, axis=1)
-    df['risk_explainer'] = [f"{valid_cols[i]}={float(S_norm[j, i]):.3f}" for j, i in enumerate(best_idx)]
+    
+    # Generate human-readable explanations
+    explanations = []
+    for j, i in enumerate(best_idx):
+        score_val = float(S_norm[j, i])
+        method = valid_cols[i]
+        
+        if method == 'iforest_score':
+            if score_val > 0.8:
+                expl = "Extremely Rare Pattern (Isolation Forest)"
+            else:
+                expl = "Unusual Transaction Pattern"
+        elif method == 'lof_score':
+            if score_val > 0.8:
+                expl = "Local Density Outlier (LOF)"
+            else:
+                expl = "Deviates from Neighbors"
+        elif method == 'ae_score':
+            expl = "Structural Anomaly (Autoencoder)"
+        else:
+            expl = f"Anomaly Detected ({method})"
+            
+        explanations.append(expl)
+        
+    df['risk_explainer'] = explanations
     return df
 
 # ---------------------------

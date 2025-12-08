@@ -4,6 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 import io
+import time
 
 # --- IMPORT CUSTOM ENGINE ---
 try:
@@ -269,6 +270,48 @@ HTML_PRIVACY_HEADER = """
 </div>
 """
 
+HTML_SCANNING_ANIMATION = """
+<style>
+@keyframes scan {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+.scanning-bar {
+    height: 4px;
+    width: 100%;
+    background: linear-gradient(270deg, #0066FF, #00D4AA, #0066FF);
+    background-size: 200% 200%;
+    animation: scan 2s ease infinite;
+    border-radius: 2px;
+    margin-bottom: 20px;
+}
+.scan-status {
+    font-family: 'Courier New', monospace;
+    color: #0066FF;
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+</style>
+<div class="glass-card" style="text-align: center; padding: 60px;">
+    <div style="font-size: 4rem; margin-bottom: 20px; animation: bounce 2s infinite;">🕵️‍♂️</div>
+    <h2 style="color: #0F172A;">AI Forensic Scan in Progress</h2>
+    <div class="scanning-bar"></div>
+    <p class="scan-status" id="scan-text">Initializing Neural Networks...</p>
+</div>
+<script>
+const texts = ["Analyzing Transaction Patterns...", "Cross-Referencing Global Ledgers...", "Detecting Statistical Anomalies...", "Verifying Vendor Metadata...", "Finalizing Risk Scores..."];
+let i = 0;
+setInterval(() => {
+    const el = document.getElementById("scan-text");
+    if (el) {
+        el.innerText = texts[i % texts.length];
+        i++;
+    }
+}, 1200);
+</script>
+"""
+
 # --- HELPER FUNCTIONS ---
 def generate_sample_csv():
     # Expanded sample data for better visuals
@@ -457,12 +500,19 @@ if menu == "Dashboard":
                     st.stop()
 
                 # --- AI EXECUTION ---
-                with st.spinner('⚡ Neural Engine analyzing patterns...'):
-                    df_features = ff.prepare_features(display_df, time_col=date_col, amount_col=amount_col, id_cols=[vendor_col] if vendor_col else None)
-                    df_scored = ff.run_detectors(df_features, contamination=sensitivity)
-                    df_final = ff.ensemble_scores(df_scored, score_cols=['iforest_score', 'lof_score'])
-                    # Pass vendor_col dynamically to rules_engine
-                    alerts = ff.rules_engine(df_final, amount_col=amount_col, vendor_col=vendor_col)
+                scan_placeholder = st.empty()
+                scan_placeholder.markdown(HTML_SCANNING_ANIMATION, unsafe_allow_html=True)
+                
+                # Simulate "Deep Scan" delay for UX (Search Engine feel)
+                time.sleep(4)
+                
+                df_features = ff.prepare_features(display_df, time_col=date_col, amount_col=amount_col, id_cols=[vendor_col] if vendor_col else None)
+                df_scored = ff.run_detectors(df_features, contamination=sensitivity)
+                df_final = ff.ensemble_scores(df_scored, score_cols=['iforest_score', 'lof_score'])
+                # Pass vendor_col dynamically to rules_engine
+                alerts = ff.rules_engine(df_final, amount_col=amount_col, vendor_col=vendor_col)
+                
+                scan_placeholder.empty() # Remove animation
 
                 # --- COCKPIT DASHBOARD ---
                 
@@ -607,14 +657,45 @@ alihaiderfinance.cfo@gmail.com
                             return ['background-color: rgba(255, 107, 107, 0.2); color: #8B0000'] * len(row)
                         return [''] * len(row)
 
-                    show_cols = [c for c in [date_col, vendor_col, amount_col, 'risk_score', 'risk_explainer'] if c]
+                    # Merge alerts into dataframe for unified view
+                    df_final['violation_reason'] = None
+                    for a in alerts:
+                        # Assuming tx_id is preserved in alerts and df_final
+                        if a.get('tx_id') in df_final['tx_id'].values:
+                            df_final.loc[df_final['tx_id'] == a['tx_id'], 'violation_reason'] = a['note']
+
+                    # Create a consolidated "Why?" column
+                    def get_explanation(row):
+                        reasons = []
+                        if pd.notna(row.get('violation_reason')):
+                            reasons.append(f"⚠️ {row['violation_reason']}")
+                        if row['risk_score'] > 0.6: # AI Threshold
+                            reasons.append(f"🤖 {row['risk_explainer']}")
+                        return " | ".join(reasons) if reasons else "✅ Verified Normal"
+
+                    df_final['Analysis'] = df_final.apply(get_explanation, axis=1)
+
+                    show_cols = [c for c in [date_col, vendor_col, amount_col, 'risk_score', 'Analysis'] if c]
                     
                     st.dataframe(
                         df_final.sort_values('risk_score', ascending=False)[show_cols]
                         .style.apply(highlight_risk, axis=1)
-                        .format({amount_col: "${:,.2f}", 'risk_score': "{:.3f}"}),
+                        .format({amount_col: "${:,.2f}", 'risk_score': "{:.2%}"}), # Percentage format
+                        column_config={
+                            "risk_score": st.column_config.ProgressColumn(
+                                "Risk Level",
+                                help="AI Calculated Probability of Fraud",
+                                format="%.2f",
+                                min_value=0,
+                                max_value=1,
+                            ),
+                            "Analysis": st.column_config.TextColumn(
+                                "AI Insight & Violations",
+                                width="large"
+                            )
+                        },
                         use_container_width=True,
-                        height=500
+                        height=600
                     )
 
             except Exception as e:
