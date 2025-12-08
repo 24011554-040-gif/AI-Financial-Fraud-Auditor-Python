@@ -181,97 +181,91 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# --- HTML CONTENT CONSTANTS ---
-# Moving HTML content here to avoid indentation issues in conditional blocks
+# --- HTML CONTENT CONSTANTS (UNINDENTED FOR MARKDOWN SAFETY) ---
 
-# 1. Dashboard Components
 HTML_HERO_SECTION = """
 <div class="animate-enter" style="text-align: center; margin-bottom: 4rem; padding: 2rem 0;">
-    <h1>Uncover the Invisible.</h1>
-    <p style="font-size: 1.25rem; max-width: 700px; margin: 0 auto; color: #64748B;">
-        Advanced AI forensics to detect anomalies, duplicates, and fraud in your financial data.
-        Fast. Secure. Precise.
-    </p>
+<h1>Uncover the Invisible.</h1>
+<p style="font-size: 1.25rem; max-width: 700px; margin: 0 auto; color: #64748B;">
+Advanced AI forensics to detect anomalies, duplicates, and fraud in your financial data.
+Fast. Secure. Precise.
+</p>
 </div>
 """
 
 HTML_DATA_INGESTION_CARD = """
 <div class="glass-card">
-    <h3>📂 Data Ingestion</h3>
-    <p style="font-size: 0.9rem;">Drag & Drop your transaction ledger (CSV/Excel).</p>
+<h3>📂 Data Ingestion</h3>
+<p style="font-size: 0.9rem;">Drag & Drop your transaction ledger (CSV/Excel).</p>
 </div>
 """
 
 HTML_EMPTY_STATE = """
 <div class="glass-card" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-style: dashed; border-color: #CBD5E1;">
-    <div>
-        <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📊</div>
-        <h3 style="color: #94A3B8;">Awaiting Dataset</h3>
-        <p style="color: #94A3B8; font-size: 0.9rem;">Upload file to trigger the Neural Engine.</p>
-        <br>
-        <div style="text-align: left; background: #F1F5F9; padding: 15px; border-radius: 8px; font-size: 0.85rem; color: #64748B;">
-            <strong>Required Columns:</strong>
-            <ul style="margin-top: 5px; margin-bottom: 0;">
-                <li>📅 <strong>Date</strong> (e.g., 'Transaction Date', 'Time')</li>
-                <li>💰 <strong>Amount</strong> (e.g., 'Value', 'Cost', 'Price')</li>
-                <li>🏢 <strong>Vendor</strong> (Optional, e.g., 'Merchant', 'Description')</li>
-            </ul>
-        </div>
-    </div>
+<div>
+<div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📊</div>
+<h3 style="color: #94A3B8;">Awaiting Dataset</h3>
+<p style="color: #94A3B8; font-size: 0.9rem;">Upload file to trigger the Neural Engine.</p>
+<br>
+<div style="text-align: left; background: #F1F5F9; padding: 15px; border-radius: 8px; font-size: 0.85rem; color: #64748B;">
+<strong>Required Columns:</strong>
+<ul style="margin-top: 5px; margin-bottom: 0;">
+<li>📅 <strong>Date</strong> (e.g., 'Transaction Date', 'Time')</li>
+<li>💰 <strong>Amount</strong> (e.g., 'Value', 'Cost', 'Price')</li>
+<li>🏢 <strong>Vendor</strong> (Optional, e.g., 'Merchant', 'Description')</li>
+</ul>
+</div>
+</div>
 </div>
 """
 
-# 2. Methodology Components
 HTML_METHODOLOGY_HEADER = """
 <div style="max-width: 800px; margin: 0 auto; padding-top: 2rem;">
-    <h1>The Engine Under the Hood</h1>
-    <p>Our hybrid detection system combines traditional rule-based forensic accounting with state-of-the-art unsupervised machine learning.</p>
+<h1>The Engine Under the Hood</h1>
+<p>Our hybrid detection system combines traditional rule-based forensic accounting with state-of-the-art unsupervised machine learning.</p>
 </div>
 """
 
 HTML_METHODOLOGY_CARD_1 = """
 <div class="glass-card">
-    <h3>1. Ensemble Machine Learning</h3>
-    <p>We do not rely on a single model. We aggregate votes from:</p>
-    <ul>
-        <li><strong>Isolation Forests:</strong> Efficiently isolates anomalies by randomly selecting a feature and split value.</li>
-        <li><strong>Local Outlier Factor (LOF):</strong> Measures the local density deviation of a data point with respect to its neighbors.</li>
-    </ul>
+<h3>1. Ensemble Machine Learning</h3>
+<p>We do not rely on a single model. We aggregate votes from:</p>
+<ul>
+<li><strong>Isolation Forests:</strong> Efficiently isolates anomalies by randomly selecting a feature and split value.</li>
+<li><strong>Local Outlier Factor (LOF):</strong> Measures the local density deviation of a data point with respect to its neighbors.</li>
+</ul>
 </div>
 """
 
 HTML_METHODOLOGY_CARD_2 = """
 <div class="glass-card">
-    <h3>2. Digital Fingerprinting</h3>
-    <p>We generate a 15-dimensional vector for every transaction, analyzing:</p>
-    <ul>
-        <li><strong>Velocity:</strong> Frequency of transactions per time window.</li>
-        <li><strong>Benford's Law:</strong> Distribution of leading digits.</li>
-        <li><strong>Global & Local Z-Scores:</strong> Deviation from both the vendor's history and the global ledger.</li>
-    </ul>
+<h3>2. Digital Fingerprinting</h3>
+<p>We generate a 15-dimensional vector for every transaction, analyzing:</p>
+<ul>
+<li><strong>Velocity:</strong> Frequency of transactions per time window.</li>
+<li><strong>Benford's Law:</strong> Distribution of leading digits.</li>
+<li><strong>Global & Local Z-Scores:</strong> Deviation from both the vendor's history and the global ledger.</li>
+</ul>
 </div>
 """
 
-# 3. Privacy Policy Components
 HTML_PRIVACY_HEADER = """
 <div style="max-width: 800px; margin: 0 auto; padding-top: 2rem;">
-    <h1>Data Privacy & Terms</h1>
-    
-    <div class="glass-card" style="border-left: 5px solid #00D4AA;">
-        <h3>🔐 Zero-Retention Policy</h3>
-        <p>This application operates on a <strong>"Compute & Destroy"</strong> architecture.</p>
-        <ul>
-            <li>Your data exists in the server's RAM <strong>only</strong> during the active session.</li>
-            <li>No database persistence. No S3 storage. No logs containing PII.</li>
-            <li>Once you close this tab, the data is irretrievably lost.</li>
-        </ul>
-    </div>
-    
-    <br>
-    <div class="glass-card">
-        <h3>Disclaimer</h3>
-        <p>This tool is an automated analytical aid and does not constitute a certified financial audit or legal opinion. FraudGuard Analytics accepts no liability for decisions made based on these outputs.</p>
-    </div>
+<h1>Data Privacy & Terms</h1>
+<div class="glass-card" style="border-left: 5px solid #00D4AA;">
+<h3>🔐 Zero-Retention Policy</h3>
+<p>This application operates on a <strong>"Compute & Destroy"</strong> architecture.</p>
+<ul>
+<li>Your data exists in the server's RAM <strong>only</strong> during the active session.</li>
+<li>No database persistence. No S3 storage. No logs containing PII.</li>
+<li>Once you close this tab, the data is irretrievably lost.</li>
+</ul>
+</div>
+<br>
+<div class="glass-card">
+<h3>Disclaimer</h3>
+<p>This tool is an automated analytical aid and does not constitute a certified financial audit or legal opinion. FraudGuard Analytics accepts no liability for decisions made based on these outputs.</p>
+</div>
 </div>
 """
 
@@ -363,8 +357,8 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("""
 <div style='background: #EFF6FF; padding: 15px; border-radius: 10px;'>
-    <small style='color: #1E3A8A; font-weight: 600;'>STATUS</small><br>
-    <span class='status-pill status-safe'>● System Online</span>
+<small style='color: #1E3A8A; font-weight: 600;'>STATUS</small><br>
+<span class='status-pill status-safe'>● System Online</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -467,46 +461,46 @@ if menu == "Dashboard":
                 
                 with m1:
                     st.markdown(f"""<div class="glass-card" style="padding: 1.5rem; text-align: center;">
-                        <div class="metric-label">Volume Processed</div>
-                        <div class="metric-value">{total_audited}</div>
-                    </div>""", unsafe_allow_html=True)
+<div class="metric-label">Volume Processed</div>
+<div class="metric-value">{total_audited}</div>
+</div>""", unsafe_allow_html=True)
                 with m2:
                     st.markdown(f"""<div class="glass-card" style="padding: 1.5rem; text-align: center;">
-                        <div class="metric-label">High Risk Flags</div>
-                        <div class="metric-value" style="color: #FF6B6B;">{high_risk_count}</div>
-                    </div>""", unsafe_allow_html=True)
+<div class="metric-label">High Risk Flags</div>
+<div class="metric-value" style="color: #FF6B6B;">{high_risk_count}</div>
+</div>""", unsafe_allow_html=True)
                 with m3:
                     st.markdown(f"""<div class="glass-card" style="padding: 1.5rem; text-align: center;">
-                        <div class="metric-label">Rule Violations</div>
-                        <div class="metric-value" style="color: #FFA500;">{len(alerts)}</div>
-                    </div>""", unsafe_allow_html=True)
+<div class="metric-label">Rule Violations</div>
+<div class="metric-value" style="color: #FFA500;">{len(alerts)}</div>
+</div>""", unsafe_allow_html=True)
                 with m4:
                     st.markdown(f"""<div class="glass-card" style="padding: 1.5rem; text-align: center;">
-                        <div class="metric-label">Avg Anomaly Score</div>
-                        <div class="metric-value">{avg_risk:.1f}%</div>
-                    </div>""", unsafe_allow_html=True)
+<div class="metric-label">Avg Anomaly Score</div>
+<div class="metric-value">{avg_risk:.1f}%</div>
+</div>""", unsafe_allow_html=True)
 
                 # 2. RESTRICTED ACCESS NOTIFICATION
                 if is_limited:
                      st.markdown("""
 <div class="glass-card" style="border: 1px solid #10B981; background: rgba(16, 185, 129, 0.05);">
-    <div style="text-align: center;">
-        <h3 style="color: #047857; margin-top: 0;">🔓 Unlock Enterprise Capability</h3>
-        <p style="color: #065F46;">
-            Preview Mode limited to 60 transactions. Your file contains <strong>{total}</strong> rows.
-        </p>
-        <div style="margin-top: 20px;">
-            <a href="https://www.linkedin.com/in/ali-haider-accountant/" target="_blank" 
-                style="background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 6px rgba(5, 150, 105, 0.2);">
-                Contact for Full Audit
-            </a>
-            <span style="margin: 0 15px; color: #065F46; font-weight: 500;">OR</span>
-            <a href="mailto:alihaiderfinance.cfo@gmail.com" 
-                style="color: #047857; text-decoration: underline; font-weight: 600;">
-                alihaiderfinance.cfo@gmail.com
-            </a>
-        </div>
-    </div>
+<div style="text-align: center;">
+<h3 style="color: #047857; margin-top: 0;">🔓 Unlock Enterprise Capability</h3>
+<p style="color: #065F46;">
+Preview Mode limited to 60 transactions. Your file contains <strong>{total}</strong> rows.
+</p>
+<div style="margin-top: 20px;">
+<a href="https://www.linkedin.com/in/ali-haider-accountant/" target="_blank" 
+style="background-color: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; box-shadow: 0 4px 6px rgba(5, 150, 105, 0.2);">
+Contact for Full Audit
+</a>
+<span style="margin: 0 15px; color: #065F46; font-weight: 500;">OR</span>
+<a href="mailto:alihaiderfinance.cfo@gmail.com" 
+style="color: #047857; text-decoration: underline; font-weight: 600;">
+alihaiderfinance.cfo@gmail.com
+</a>
+</div>
+</div>
 </div>
 """.format(total=total_rows), unsafe_allow_html=True)
 
