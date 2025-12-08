@@ -352,7 +352,22 @@ with st.sidebar:
         if is_admin:
             st.success("🔓 Authenticated")
         
-        sensitivity = st.slider("Anomaly Sensitivity", 0.01, 0.20, 0.05, 0.01)
+        # Sensitivity UX Improvements
+        st.markdown("**🔍 Detection Sensitivity**")
+        sensitivity = st.slider("", 0.01, 0.20, 0.05, 0.01, help="Higher sensitivity detects more subtle anomalies but may increase false positives.")
+        
+        # Dynamic label for sensitivity
+        if sensitivity <= 0.05:
+            sens_label = "🟢 Conservative (Low False Positives)"
+            sens_desc = "Flags only the most obvious anomalies."
+        elif sensitivity <= 0.10:
+            sens_label = "🟡 Balanced (Recommended)"
+            sens_desc = "Good balance between detection and noise."
+        else:
+            sens_label = "🔴 Aggressive (Maximum Detection)"
+            sens_desc = "Flags everything unusual. Expect some false alarms."
+            
+        st.caption(f"{sens_label}\n\n*{sens_desc}*")
         
     st.markdown("---")
     st.markdown("""
