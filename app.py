@@ -181,6 +181,100 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- HTML CONTENT CONSTANTS ---
+# Moving HTML content here to avoid indentation issues in conditional blocks
+
+# 1. Dashboard Components
+HTML_HERO_SECTION = """
+<div class="animate-enter" style="text-align: center; margin-bottom: 4rem; padding: 2rem 0;">
+    <h1>Uncover the Invisible.</h1>
+    <p style="font-size: 1.25rem; max-width: 700px; margin: 0 auto; color: #64748B;">
+        Advanced AI forensics to detect anomalies, duplicates, and fraud in your financial data.
+        Fast. Secure. Precise.
+    </p>
+</div>
+"""
+
+HTML_DATA_INGESTION_CARD = """
+<div class="glass-card">
+    <h3>📂 Data Ingestion</h3>
+    <p style="font-size: 0.9rem;">Drag & Drop your transaction ledger (CSV/Excel).</p>
+</div>
+"""
+
+HTML_EMPTY_STATE = """
+<div class="glass-card" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-style: dashed; border-color: #CBD5E1;">
+    <div>
+        <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📊</div>
+        <h3 style="color: #94A3B8;">Awaiting Dataset</h3>
+        <p style="color: #94A3B8; font-size: 0.9rem;">Upload file to trigger the Neural Engine.</p>
+        <br>
+        <div style="text-align: left; background: #F1F5F9; padding: 15px; border-radius: 8px; font-size: 0.85rem; color: #64748B;">
+            <strong>Required Columns:</strong>
+            <ul style="margin-top: 5px; margin-bottom: 0;">
+                <li>📅 <strong>Date</strong> (e.g., 'Transaction Date', 'Time')</li>
+                <li>💰 <strong>Amount</strong> (e.g., 'Value', 'Cost', 'Price')</li>
+                <li>🏢 <strong>Vendor</strong> (Optional, e.g., 'Merchant', 'Description')</li>
+            </ul>
+        </div>
+    </div>
+</div>
+"""
+
+# 2. Methodology Components
+HTML_METHODOLOGY_HEADER = """
+<div style="max-width: 800px; margin: 0 auto; padding-top: 2rem;">
+    <h1>The Engine Under the Hood</h1>
+    <p>Our hybrid detection system combines traditional rule-based forensic accounting with state-of-the-art unsupervised machine learning.</p>
+</div>
+"""
+
+HTML_METHODOLOGY_CARD_1 = """
+<div class="glass-card">
+    <h3>1. Ensemble Machine Learning</h3>
+    <p>We do not rely on a single model. We aggregate votes from:</p>
+    <ul>
+        <li><strong>Isolation Forests:</strong> Efficiently isolates anomalies by randomly selecting a feature and split value.</li>
+        <li><strong>Local Outlier Factor (LOF):</strong> Measures the local density deviation of a data point with respect to its neighbors.</li>
+    </ul>
+</div>
+"""
+
+HTML_METHODOLOGY_CARD_2 = """
+<div class="glass-card">
+    <h3>2. Digital Fingerprinting</h3>
+    <p>We generate a 15-dimensional vector for every transaction, analyzing:</p>
+    <ul>
+        <li><strong>Velocity:</strong> Frequency of transactions per time window.</li>
+        <li><strong>Benford's Law:</strong> Distribution of leading digits.</li>
+        <li><strong>Global & Local Z-Scores:</strong> Deviation from both the vendor's history and the global ledger.</li>
+    </ul>
+</div>
+"""
+
+# 3. Privacy Policy Components
+HTML_PRIVACY_HEADER = """
+<div style="max-width: 800px; margin: 0 auto; padding-top: 2rem;">
+    <h1>Data Privacy & Terms</h1>
+    
+    <div class="glass-card" style="border-left: 5px solid #00D4AA;">
+        <h3>🔐 Zero-Retention Policy</h3>
+        <p>This application operates on a <strong>"Compute & Destroy"</strong> architecture.</p>
+        <ul>
+            <li>Your data exists in the server's RAM <strong>only</strong> during the active session.</li>
+            <li>No database persistence. No S3 storage. No logs containing PII.</li>
+            <li>Once you close this tab, the data is irretrievably lost.</li>
+        </ul>
+    </div>
+    
+    <br>
+    <div class="glass-card">
+        <h3>Disclaimer</h3>
+        <p>This tool is an automated analytical aid and does not constitute a certified financial audit or legal opinion. FraudGuard Analytics accepts no liability for decisions made based on these outputs.</p>
+    </div>
+</div>
+"""
+
 # --- HELPER FUNCTIONS ---
 def generate_sample_csv():
     # Expanded sample data for better visuals
@@ -278,26 +372,13 @@ with st.sidebar:
 
 if menu == "Dashboard":
     # HERO SECTION
-    st.markdown("""
-<div class="animate-enter" style="text-align: center; margin-bottom: 4rem; padding: 2rem 0;">
-    <h1>Uncover the Invisible.</h1>
-    <p style="font-size: 1.25rem; max-width: 700px; margin: 0 auto; color: #64748B;">
-        Advanced AI forensics to detect anomalies, duplicates, and fraud in your financial data.
-        Fast. Secure. Precise.
-    </p>
-</div>
-""", unsafe_allow_html=True)
+    st.markdown(HTML_HERO_SECTION, unsafe_allow_html=True)
 
     # DATA INPUT SECTION
     col1, col2 = st.columns([1, 2])
     
     with col1:
-        st.markdown("""
-<div class="glass-card">
-    <h3>📂 Data Ingestion</h3>
-    <p style="font-size: 0.9rem;">Drag & Drop your transaction ledger (CSV/Excel).</p>
-</div>
-""", unsafe_allow_html=True)
+        st.markdown(HTML_DATA_INGESTION_CARD, unsafe_allow_html=True)
         uploaded_file = st.file_uploader("", type=['csv', 'xlsx', 'xls'], label_visibility="collapsed")
         
         st.download_button(
@@ -311,24 +392,7 @@ if menu == "Dashboard":
     with col2:
         if not uploaded_file:
             # EMPTY STATE WITH ILLUSTRATION PLACEHOLDER
-            st.markdown("""
-<div class="glass-card" style="height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-style: dashed; border-color: #CBD5E1;">
-    <div>
-        <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📊</div>
-        <h3 style="color: #94A3B8;">Awaiting Dataset</h3>
-        <p style="color: #94A3B8; font-size: 0.9rem;">Upload file to trigger the Neural Engine.</p>
-        <br>
-        <div style="text-align: left; background: #F1F5F9; padding: 15px; border-radius: 8px; font-size: 0.85rem; color: #64748B;">
-            <strong>Required Columns:</strong>
-            <ul style="margin-top: 5px; margin-bottom: 0;">
-                <li>📅 <strong>Date</strong> (e.g., 'Transaction Date', 'Time')</li>
-                <li>💰 <strong>Amount</strong> (e.g., 'Value', 'Cost', 'Price')</li>
-                <li>🏢 <strong>Vendor</strong> (Optional, e.g., 'Merchant', 'Description')</li>
-            </ul>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+            st.markdown(HTML_EMPTY_STATE, unsafe_allow_html=True)
         else:
             # PROCESSING & DASHBOARD
             try:
@@ -549,59 +613,15 @@ if menu == "Dashboard":
                 st.info("Ensure your file has valid columns. You can use the 'Manual Column Mapping' section if auto-detection fails.")
 
 elif menu == "Methodology":
-    st.markdown("""
-<div style="max-width: 800px; margin: 0 auto; padding-top: 2rem;">
-    <h1>The Engine Under the Hood</h1>
-    <p>Our hybrid detection system combines traditional rule-based forensic accounting with state-of-the-art unsupervised machine learning.</p>
-</div>
-""", unsafe_allow_html=True)
+    st.markdown(HTML_METHODOLOGY_HEADER, unsafe_allow_html=True)
     
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("""
-<div class="glass-card">
-    <h3>1. Ensemble Machine Learning</h3>
-    <p>We do not rely on a single model. We aggregate votes from:</p>
-    <ul>
-        <li><strong>Isolation Forests:</strong> Efficiently isolates anomalies by randomly selecting a feature and split value.</li>
-        <li><strong>Local Outlier Factor (LOF):</strong> Measures the local density deviation of a data point with respect to its neighbors.</li>
-    </ul>
-</div>
-""", unsafe_allow_html=True)
+        st.markdown(HTML_METHODOLOGY_CARD_1, unsafe_allow_html=True)
 
     with col2:
-        st.markdown("""
-<div class="glass-card">
-    <h3>2. Digital Fingerprinting</h3>
-    <p>We generate a 15-dimensional vector for every transaction, analyzing:</p>
-    <ul>
-        <li><strong>Velocity:</strong> Frequency of transactions per time window.</li>
-        <li><strong>Benford's Law:</strong> Distribution of leading digits.</li>
-        <li><strong>Global & Local Z-Scores:</strong> Deviation from both the vendor's history and the global ledger.</li>
-    </ul>
-</div>
-""", unsafe_allow_html=True)
+        st.markdown(HTML_METHODOLOGY_CARD_2, unsafe_allow_html=True)
 
 elif menu == "Privacy Policy":
-    st.markdown("""
-<div style="max-width: 800px; margin: 0 auto; padding-top: 2rem;">
-    <h1>Data Privacy & Terms</h1>
-    
-    <div class="glass-card" style="border-left: 5px solid #00D4AA;">
-        <h3>🔐 Zero-Retention Policy</h3>
-        <p>This application operates on a <strong>"Compute & Destroy"</strong> architecture.</p>
-        <ul>
-            <li>Your data exists in the server's RAM <strong>only</strong> during the active session.</li>
-            <li>No database persistence. No S3 storage. No logs containing PII.</li>
-            <li>Once you close this tab, the data is irretrievably lost.</li>
-        </ul>
-    </div>
-    
-    <br>
-    <div class="glass-card">
-        <h3>Disclaimer</h3>
-        <p>This tool is an automated analytical aid and does not constitute a certified financial audit or legal opinion. FraudGuard Analytics accepts no liability for decisions made based on these outputs.</p>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+    st.markdown(HTML_PRIVACY_HEADER, unsafe_allow_html=True)
