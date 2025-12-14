@@ -2,464 +2,583 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import numpy as np
 import time
+from datetime import datetime, timedelta
+import io
+import base64
+from typing import Optional, Dict, List, Tuple, Any
+from dataclasses import dataclass
+from enum import Enum
+import json
 
 # --- IMPORT CUSTOM ENGINE ---
 try:
     import fraud_forensics as ff
+    FRAUD_ENGINE_AVAILABLE = True
 except ImportError:
-    st.error("⚠️ CRITICAL ERROR: 'fraud_forensics.py' not found. Please ensure it is in the same directory.")
-    st.stop()
+    FRAUD_ENGINE_AVAILABLE = False
 
-# --- PAGE CONFIGURATION ---
-st.set_page_config(
-    page_title="FraudGuard AI | Enterprise Forensic Audit",
-    page_icon="🛡️",
-    layout="wide",
-    initial_sidebar_state="collapsed"
-)
+# ═══════════════════════════════════════════════════════════════════════════════
+# 📦 CONFIGURATION & CONSTANTS
+# ═══════════════════════════════════════════════════════════════════════════════
 
-# --- ADVANCED CUSTOM CSS (THE "PREMIUM SAAS" LOOK) ---
-CUSTOM_CSS = """
-<style>
-    /* 1. TYPOGRAPHY IMPORT */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@500;600;700;800&display=swap');
+class RiskLevel(Enum):
+    CRITICAL = ("Critical", "#FF3B3B", "🔴")
+    HIGH = ("High", "#FF6B6B", "🟠")
+    MEDIUM = ("Medium", "#FFB946", "🟡")
+    LOW = ("Low", "#00D4AA", "🟢")
+    SAFE = ("Safe", "#4CAF50", "✅")
 
-    /* 2. ROOT VARIABLES */
-    :root {
-        --primary: #0066FF;
-        --primary-glow: rgba(0, 102, 255, 0.4);
-        --secondary: #00D4AA;
-        --danger: #FF6B6B;
-        --bg-gradient-start: #F8FAFF;
-        --bg-gradient-end: #FFFFFF;
-        --text-dark: #0F172A;
-        --text-gray: #64748B;
-        --glass-bg: rgba(255, 255, 255, 0.65);
-        --glass-border: 1px solid rgba(255, 255, 255, 0.9);
-        --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-        --card-radius: 24px;
-    }
+@dataclass
+class AppConfig:
+    APP_NAME: str = "FraudGuard AI"
+    APP_VERSION: str = "2.0.0"
+    APP_TAGLINE: str = "Enterprise Forensic Intelligence Platform"
+    DEFAULT_CONTAMINATION: float = 0.05
+    HIGH_RISK_THRESHOLD: float = 0.7
+    MEDIUM_RISK_THRESHOLD: float = 0.4
+    MAX_DISPLAY_ROWS: int = 1000
+    ANIMATION_SPEED: float = 0.03
 
-    /* 3. GLOBAL RESET & BODY */
-    .stApp {
-        background: radial-gradient(circle at top left, #F0F4FF, #FFFFFF, #F0FFF9);
-        font-family: 'Inter', sans-serif;
-        color: var(--text-dark);
-    }
+CONFIG = AppConfig()
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 🎨 PREMIUM THEME ENGINE
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_theme_css(dark_mode: bool = False) -> str:
+    """Generate dynamic CSS based on theme selection"""
     
-    h1, h2, h3 {
+    if dark_mode:
+        colors = {
+            "bg_primary": "#0A0E1A",
+            "bg_secondary": "#111827",
+            "bg_card": "rgba(17, 24, 39, 0.8)",
+            "text_primary": "#F8FAFC",
+            "text_secondary": "#94A3B8",
+            "text_muted": "#64748B",
+            "border_color": "rgba(255, 255, 255, 0.1)",
+            "accent_primary": "#3B82F6",
+            "accent_secondary": "#8B5CF6",
+            "accent_success": "#10B981",
+            "accent_danger": "#EF4444",
+            "accent_warning": "#F59E0B",
+            "glass_bg": "rgba(15, 23, 42, 0.75)",
+            "glass_border": "rgba(255, 255, 255, 0.08)",
+            "gradient_start": "#0A0E1A",
+            "gradient_mid": "#111827",
+            "gradient_end": "#1E1B4B",
+            "shadow_color": "rgba(0, 0, 0, 0.5)",
+            "glow_color": "rgba(59, 130, 246, 0.5)",
+        }
+    else:
+        colors = {
+            "bg_primary": "#FAFBFF",
+            "bg_secondary": "#FFFFFF",
+            "bg_card": "rgba(255, 255, 255, 0.7)",
+            "text_primary": "#0F172A",
+            "text_secondary": "#475569",
+            "text_muted": "#94A3B8",
+            "border_color": "rgba(0, 0, 0, 0.06)",
+            "accent_primary": "#0066FF",
+            "accent_secondary": "#8B5CF6",
+            "accent_success": "#00D4AA",
+            "accent_danger": "#FF6B6B",
+            "accent_warning": "#FFB946",
+            "glass_bg": "rgba(255, 255, 255, 0.65)",
+            "glass_border": "rgba(255, 255, 255, 0.9)",
+            "gradient_start": "#F0F4FF",
+            "gradient_mid": "#FFFFFF",
+            "gradient_end": "#F0FFF9",
+            "shadow_color": "rgba(31, 38, 135, 0.07)",
+            "glow_color": "rgba(0, 102, 255, 0.4)",
+        }
+    
+    return f"""
+<style>
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    /* 🔤 TYPOGRAPHY IMPORTS                                                    */
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    /* 🎨 CSS VARIABLES                                                         */
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    :root {{
+        --bg-primary: {colors['bg_primary']};
+        --bg-secondary: {colors['bg_secondary']};
+        --bg-card: {colors['bg_card']};
+        --text-primary: {colors['text_primary']};
+        --text-secondary: {colors['text_secondary']};
+        --text-muted: {colors['text_muted']};
+        --border-color: {colors['border_color']};
+        --accent-primary: {colors['accent_primary']};
+        --accent-secondary: {colors['accent_secondary']};
+        --accent-success: {colors['accent_success']};
+        --accent-danger: {colors['accent_danger']};
+        --accent-warning: {colors['accent_warning']};
+        --glass-bg: {colors['glass_bg']};
+        --glass-border: {colors['glass_border']};
+        --gradient-start: {colors['gradient_start']};
+        --gradient-mid: {colors['gradient_mid']};
+        --gradient-end: {colors['gradient_end']};
+        --shadow-color: {colors['shadow_color']};
+        --glow-color: {colors['glow_color']};
+        --card-radius: 20px;
+        --button-radius: 12px;
+        --transition-speed: 0.3s;
+    }}
+
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    /* 🌐 GLOBAL STYLES                                                         */
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    .stApp {{
+        background: 
+            radial-gradient(ellipse at 0% 0%, var(--gradient-start) 0%, transparent 50%),
+            radial-gradient(ellipse at 100% 0%, var(--gradient-end) 0%, transparent 50%),
+            radial-gradient(ellipse at 50% 100%, var(--gradient-mid) 0%, transparent 50%),
+            var(--bg-primary);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text-primary);
+    }}
+
+    /* Hide Streamlit Defaults */
+    #MainMenu, footer, header, .stDeployButton {{
+        visibility: hidden !important;
+        display: none !important;
+    }}
+
+    .block-container {{
+        padding: 2rem 3rem 4rem 3rem !important;
+        max-width: 1400px !important;
+    }}
+
+    /* Typography */
+    h1, h2, h3, h4, h5, h6 {{
         font-family: 'Poppins', sans-serif;
         font-weight: 700;
-        letter-spacing: -0.03em;
-        color: var(--text-dark);
-    }
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+    }}
 
-    /* 4. HIDE STREAMLIT DEFAULT ELEMENTS */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    .stDeployButton {display: none;}
+    p, span, div {{
+        color: var(--text-secondary);
+    }}
 
-    /* 5. HERO SECTION */
-    .hero-container {
-        text-align: center;
-        padding: 4rem 0 3rem 0;
-        animation: fadeIn 1s ease-out;
-    }
-    
-    .hero-title {
-        font-size: 4.5rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #0F172A 0%, #0066FF 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
-        line-height: 1.1;
-    }
-    
-    .hero-subtitle {
-        font-size: 1.25rem;
-        color: var(--text-gray);
-        max-width: 600px;
-        margin: 0 auto;
-        font-weight: 400;
-    }
-
-    /* 6. GLASSMORPHISM CARDS */
-    .glass-panel {
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    /* 🏠 NAVIGATION BAR                                                        */
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    .navbar {{
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
         background: var(--glass-bg);
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border: var(--glass-border);
-        border-radius: var(--card-radius);
-        box-shadow: var(--glass-shadow);
-        padding: 2rem;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .glass-panel:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
-    }
-
-    /* 7. CUSTOM FILE UPLOADER STYLE */
-    .stFileUploader {
-        padding: 2rem;
-        border: 2px dashed rgba(0, 102, 255, 0.2);
-        border-radius: var(--card-radius);
-        background: rgba(255,255,255,0.5);
-        text-align: center;
-        transition: all 0.3s ease;
-    }
-    
-    .stFileUploader:hover {
-        border-color: var(--primary);
-        background: rgba(0, 102, 255, 0.02);
-    }
-    
-    /* 8. METRIC CARDS (COCKPIT) */
-    .metric-container {
+        border-bottom: 1px solid var(--border-color);
+        padding: 0.75rem 2rem;
         display: flex;
-        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+    }}
+
+    .navbar-brand {{
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }}
+
+    .navbar-logo {{
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        border-radius: 12px;
+        display: flex;
         align-items: center;
         justify-content: center;
-        text-align: center;
-    }
-    
-    .metric-value {
+        font-size: 1.2rem;
+        box-shadow: 0 4px 15px var(--glow-color);
+    }}
+
+    .navbar-title {{
         font-family: 'Poppins', sans-serif;
-        font-size: 2.8rem;
         font-weight: 700;
-        line-height: 1.2;
-        background: linear-gradient(180deg, var(--text-dark) 0%, #334155 100%);
+        font-size: 1.25rem;
+        background: linear-gradient(135deg, var(--text-primary), var(--accent-primary));
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-    }
-    
-    .metric-label {
-        font-size: 0.85rem;
+    }}
+
+    .navbar-badge {{
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+        color: white;
+        font-size: 0.65rem;
+        font-weight: 600;
+        padding: 3px 8px;
+        border-radius: 20px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }}
+
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    /* 🦸 HERO SECTION                                                          */
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    .hero-section {{
+        text-align: center;
+        padding: 5rem 2rem 3rem 2rem;
+        position: relative;
+        overflow: hidden;
+    }}
+
+    .hero-section::before {{
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, var(--glow-color) 0%, transparent 70%);
+        opacity: 0.3;
+        pointer-events: none;
+        animation: pulse-glow 4s ease-in-out infinite;
+    }}
+
+    @keyframes pulse-glow {{
+        0%, 100% {{ transform: translate(-50%, -50%) scale(1); opacity: 0.3; }}
+        50% {{ transform: translate(-50%, -50%) scale(1.1); opacity: 0.5; }}
+    }}
+
+    .hero-icon {{
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        animation: float 3s ease-in-out infinite;
+    }}
+
+    @keyframes float {{
+        0%, 100% {{ transform: translateY(0px); }}
+        50% {{ transform: translateY(-10px); }}
+    }}
+
+    .hero-title {{
+        font-size: clamp(2.5rem, 6vw, 4.5rem);
+        font-weight: 900;
+        line-height: 1.1;
+        margin-bottom: 0.75rem;
+        background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-primary) 50%, var(--accent-secondary) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradient-shift 8s ease infinite;
+        background-size: 200% 200%;
+    }}
+
+    @keyframes gradient-shift {{
+        0%, 100% {{ background-position: 0% 50%; }}
+        50% {{ background-position: 100% 50%; }}
+    }}
+
+    .hero-subtitle {{
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        max-width: 650px;
+        margin: 0 auto 2rem auto;
+        font-weight: 400;
+        line-height: 1.6;
+    }}
+
+    .hero-features {{
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+    }}
+
+    .hero-feature {{
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }}
+
+    .hero-feature-icon {{
+        width: 24px;
+        height: 24px;
+        background: var(--accent-success);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+    }}
+
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    /* 🪟 GLASS CARDS                                                           */
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    .glass-card {{
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--card-radius);
+        box-shadow: 
+            0 8px 32px var(--shadow-color),
+            inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        padding: 1.5rem;
+        transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }}
+
+    .glass-card::before {{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    }}
+
+    .glass-card:hover {{
+        transform: translateY(-4px);
+        box-shadow: 
+            0 16px 48px var(--shadow-color),
+            0 0 0 1px var(--accent-primary),
+            inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    }}
+
+    .glass-card-header {{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }}
+
+    .glass-card-title {{
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }}
+
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    /* 📊 METRIC CARDS                                                          */
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    .metric-card {{
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--glass-border);
+        border-radius: var(--card-radius);
+        padding: 1.75rem;
+        text-align: center;
+        transition: all var(--transition-speed) cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+    }}
+
+    .metric-card::after {{
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--metric-accent, var(--accent-primary));
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }}
+
+    .metric-card:hover::after {{
+        transform: scaleX(1);
+    }}
+
+    .metric-card:hover {{
+        transform: translateY(-6px);
+        box-shadow: 0 20px 40px var(--shadow-color);
+    }}
+
+    .metric-icon {{
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+        display: block;
+    }}
+
+    .metric-value {{
+        font-family: 'Poppins', sans-serif;
+        font-size: 2.5rem;
+        font-weight: 800;
+        line-height: 1.2;
+        color: var(--metric-color, var(--text-primary));
+        margin-bottom: 0.25rem;
+    }}
+
+    .metric-label {{
+        font-size: 0.75rem;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: var(--text-gray);
+        color: var(--text-muted);
+        font-weight: 600;
+    }}
+
+    .metric-trend {{
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 0.8rem;
         font-weight: 600;
         margin-top: 0.5rem;
-    }
+        padding: 4px 10px;
+        border-radius: 20px;
+    }}
 
-    /* 9. DATAFRAME STYLING */
-    .stDataFrame {
-        border-radius: 16px;
+    .metric-trend.up {{
+        background: rgba(16, 185, 129, 0.15);
+        color: var(--accent-success);
+    }}
+
+    .metric-trend.down {{
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--accent-danger);
+    }}
+
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    /* 📁 FILE UPLOADER                                                         */
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    .upload-zone {{
+        background: var(--glass-bg);
+        backdrop-filter: blur(20px);
+        border: 2px dashed var(--border-color);
+        border-radius: var(--card-radius);
+        padding: 3rem 2rem;
+        text-align: center;
+        transition: all var(--transition-speed) ease;
+        cursor: pointer;
+        position: relative;
         overflow: hidden;
-        border: 1px solid rgba(0,0,0,0.05);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
+    }}
 
-    /* 10. ANIMATIONS */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .animate-enter {
-        animation: fadeIn 0.8s ease-out forwards;
-    }
+    .upload-zone:hover {{
+        border-color: var(--accent-primary);
+        background: rgba(59, 130, 246, 0.05);
+        transform: scale(1.01);
+    }}
 
-    /* 11. CUSTOM BUTTONS */
-    .stButton > button {
-        background: var(--primary);
+    .upload-zone-active {{
+        border-color: var(--accent-primary);
+        background: rgba(59, 130, 246, 0.1);
+        box-shadow: 0 0 30px var(--glow-color);
+    }}
+
+    .upload-icon {{
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+        animation: bounce 2s ease infinite;
+    }}
+
+    @keyframes bounce {{
+        0%, 100% {{ transform: translateY(0); }}
+        50% {{ transform: translateY(-8px); }}
+    }}
+
+    .upload-title {{
+        font-family: 'Poppins', sans-serif;
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }}
+
+    .upload-subtitle {{
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }}
+
+    .upload-formats {{
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-top: 1rem;
+    }}
+
+    .format-badge {{
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        padding: 6px 14px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-family: 'JetBrains Mono', monospace;
+    }}
+
+    /* Streamlit File Uploader Override */
+    .stFileUploader {{
+        background: transparent !important;
+    }}
+
+    .stFileUploader > div {{
+        background: transparent !important;
+        border: none !important;
+    }}
+
+    .stFileUploader label {{
+        display: none !important;
+    }}
+
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    /* 🔘 BUTTONS                                                               */
+    /* ═══════════════════════════════════════════════════════════════════════ */
+    .stButton > button {{
+        background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
         color: white;
         border: none;
-        padding: 0.75rem 2rem;
-        border-radius: 12px;
+        padding: 0.85rem 2rem;
+        border-radius: var(--button-radius);
         font-weight: 600;
+        font-size: 0.95rem;
         letter-spacing: 0.02em;
-        box-shadow: 0 4px 14px 0 rgba(0, 102, 255, 0.39);
-        transition: all 0.2s ease;
+        box-shadow: 0 4px 15px var(--glow-color);
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         width: 100%;
-    }
-    
-    .stButton > button:hover {
-        background: #0055D4;
-        transform: scale(1.02);
-        box-shadow: 0 6px 20px 0 rgba(0, 102, 255, 0.23);
-    }
+        position: relative;
+        overflow: hidden;
+    }}
 
-    /* 12. TABS */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
-        background-color: transparent;
-        padding-bottom: 10px;
-    }
+    .stButton > button::before {{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+        transition: left 0.5s ease;
+    }}
 
-    .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre-wrap;
-        background-color: transparent;
-        border-radius: 12px;
-        color: var(--text-gray);
-        font-weight: 600;
-        font-family: 'Inter', sans-serif;
-        border: none;
-        padding: 0 20px;
-    }
+    .stButton > button:hover::before {{
+        left: 100%;
+    }}
 
-    .stTabs [aria-selected="true"] {
-        background-color: white;
-        color: var(--primary);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    }
-    
-    /* REMOVE PADDING TOP */
-    .block-container {
-        padding-top: 2rem !important;
-    }
-</style>
-"""
-st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
+    .stButton > button:hover {{
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 8px 25px var(--glow-color);
+    }}
 
-# --- HELPER FUNCTIONS ---
-def generate_sample_csv():
-    # Standardized demo data
-    data = {
-        'Date': pd.date_range(start='2025-01-01', periods=100, freq='H'),
-        'Vendor': np.random.choice(['Amazon AWS', 'Uber Business', 'WeWork', 'Staples', 'Unknown LLC', 'Shell'], 100),
-        'Amount': np.random.exponential(scale=200, size=100).round(2),
-        'Description': ['Service fee' for _ in range(100)]
-    }
-    # Inject Fraud
-    data['Amount'][95] = 9500.00 # High value
-    data['Vendor'][95] = 'Shell' # Unusual for gas
-    data['Amount'][96] = 5000.00 # Round number
-    data['Amount'][97] = 5000.00 # Duplicate
-    
-    df = pd.DataFrame(data)
-    return df.to_csv(index=False).encode('utf-8')
+    .stButton > button:active {{
+        transform: translateY(0) scale(0.98);
+    }}
 
-# --- UI COMPONENTS ---
-
-def render_hero():
-    st.markdown("""
-        <div class="hero-container">
-            <div class="hero-title">FraudGuard AI</div>
-            <div class="hero-subtitle">Next-Gen Forensic Audit & Anomaly Detection. <br> Precision engineered for the modern enterprise.</div>
-        </div>
-    """, unsafe_allow_html=True)
-
-def render_metric_card(label, value, color=None, subtext=None):
-    color_style = f"color: {color};" if color else ""
-    st.markdown(f"""
-        <div class="glass-panel metric-container animate-enter">
-            <div class="metric-value" style="{color_style}">{value}</div>
-            <div class="metric-label">{label}</div>
-            {f'<div style="font-size:0.75rem; color:#94A3B8; margin-top:4px;">{subtext}</div>' if subtext else ''}
-        </div>
-    """, unsafe_allow_html=True)
-
-def render_scanning_animation():
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    
-    phases = [
-        "Initializing Neural Networks...",
-        "Normalizing Transaction Vectors...",
-        "Running Isolation Forest...",
-        "Calculating Local Outlier Factors...",
-        "Detecting Collusion Patterns...",
-        "Finalizing Risk Scores..."
-    ]
-    
-    for i, phase in enumerate(phases):
-        # Update text with a nice styled HTML
-        status_text.markdown(f"""
-            <div style="text-align: center; margin-top: 20px; animation: fadeIn 0.5s;">
-                <span style="font-family: 'Roboto Mono', monospace; color: #0066FF; font-weight: 600;">
-                    {phase}
-                </span>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # Smooth progress update
-        for p in range(0, 101, 20):
-            time.sleep(0.05)
-            progress_val = min((i * 100 // len(phases)) + (p // len(phases)), 100)
-            progress_bar.progress(progress_val)
-            
-    progress_bar.progress(100)
-    time.sleep(0.5)
-    progress_bar.empty()
-    status_text.empty()
-
-# --- MAIN APP LOGIC ---
-
-render_hero()
-
-# Main Container using columns for layout centered
-with st.container():
-    # File Uploader Section
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown('<div style="text-align: center; margin-bottom: 10px; font-weight: 600; color: #64748B;">UPLOAD TRANSACTION LEDGER</div>', unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("", type=['csv', 'xlsx'], label_visibility="collapsed")
-        
-        # Demo Data Link
-        if not uploaded_file:
-            st.download_button(
-                label="No data? Download Demo CSV",
-                data=generate_sample_csv(),
-                file_name="demo_fraud_data.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
-
-# Process Data if available
-if uploaded_file:
-    try:
-        # Load Data
-        if uploaded_file.name.endswith('.csv'):
-            df = pd.read_csv(uploaded_file)
-        else:
-            df = pd.read_excel(uploaded_file)
-            
-        # Basic Validation
-        if df.empty:
-            st.error("File is empty.")
-            st.stop()
-            
-        # Auto-map columns (simplified for UX)
-        cols = df.columns.str.lower()
-        date_col = next((c for c in df.columns if 'date' in c.lower() or 'time' in c.lower()), None)
-        amount_col = next((c for c in df.columns if 'amount' in c.lower() or 'value' in c.lower() or 'cost' in c.lower()), None)
-        vendor_col = next((c for c in df.columns if 'vendor' in c.lower() or 'desc' in c.lower() or 'merchant' in c.lower()), None)
-        
-        if not (date_col and amount_col):
-            st.warning("Could not auto-detect columns. Please rename columns to 'Date', 'Amount', 'Vendor'.")
-            st.stop()
-            
-        # Run Analysis
-        render_scanning_animation()
-        
-        # Fraud Logic
-        df_features = ff.prepare_features(df, time_col=date_col, amount_col=amount_col, id_cols=[vendor_col] if vendor_col else None)
-        df_scored = ff.run_detectors(df_features, contamination=0.05)
-        df_final = ff.ensemble_scores(df_scored, score_cols=['iforest_score', 'lof_score'])
-        alerts = ff.rules_engine(df_final, amount_col=amount_col, vendor_col=vendor_col)
-        
-        # --- DASHBOARD COCKPIT ---
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        # Stats Calculation
-        total_tx = len(df)
-        high_risk_tx = df_final[df_final['risk_score'] > 0.7]
-        high_risk_count = len(high_risk_tx)
-        total_vol = df[amount_col].sum()
-        risk_vol = high_risk_tx[amount_col].sum()
-        
-        # 4 Metric Cards
-        m1, m2, m3, m4 = st.columns(4)
-        
-        with m1:
-            render_metric_card("Transactions", f"{total_tx:,}", subtext="Total Rows Processed")
-        with m2:
-            render_metric_card("Total Volume", f"${total_vol:,.0f}", color="#0066FF")
-        with m3:
-            render_metric_card("High Risk", f"{high_risk_count}", color="#FF6B6B", subtext=f"{len(alerts)} Rule Violations")
-        with m4:
-            render_metric_card("Risk Exposure", f"${risk_vol:,.0f}", color="#FF6B6B")
-
-        st.markdown("<br><br>", unsafe_allow_html=True)
-
-        # --- VISUALIZATION SUITE ---
-        tabs = st.tabs(["🔎 Forensic Explorer", "📊 3D Risk Landscape", "📈 Anomaly Timeline"])
-        
-        with tabs[0]:
-            # Highlighted Dataframe
-            st.markdown("### 📋 High Priority Investigations")
-            
-            # Filter to show risky items first
-            df_display = df_final.sort_values('risk_score', ascending=False).head(100)
-            
-            # Custom Column Config
-            st.dataframe(
-                df_display[[date_col, vendor_col, amount_col, 'risk_score', 'risk_explainer']],
-                column_config={
-                    "risk_score": st.column_config.ProgressColumn(
-                        "Risk Score",
-                        help="AI Confidence 0-100%",
-                        format="%.2f",
-                        min_value=0,
-                        max_value=1,
-                    ),
-                    amount_col: st.column_config.NumberColumn(
-                        "Amount",
-                        format="$%.2f"
-                    )
-                },
-                use_container_width=True,
-                height=400
-            )
-            
-        with tabs[1]:
-            # 3D SCATTER PLOT
-            if 'hour' in df_final.columns:
-                st.markdown("### 🌐 Multidimensional Anomaly Vector")
-                
-                fig = px.scatter_3d(
-                    df_final,
-                    x='hour',
-                    y=amount_col,
-                    z='risk_score',
-                    color='risk_score',
-                    color_continuous_scale=[[0, '#00D4AA'], [0.5, '#0066FF'], [1, '#FF6B6B']],
-                    opacity=0.8,
-                    hover_data=[vendor_col],
-                    height=600
-                )
-                
-                fig.update_layout(
-                    scene=dict(
-                        xaxis=dict(title='Hour of Day', backgroundcolor="rgba(0,0,0,0)", gridcolor="rgba(0,0,0,0.1)", showbackground=False),
-                        yaxis=dict(title='Amount', backgroundcolor="rgba(0,0,0,0)", gridcolor="rgba(0,0,0,0.1)", showbackground=False),
-                        zaxis=dict(title='Risk Score', backgroundcolor="rgba(0,0,0,0)", gridcolor="rgba(0,0,0,0.1)", showbackground=False),
-                        bgcolor='rgba(0,0,0,0)'
-                    ),
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    margin=dict(l=0, r=0, b=0, t=0)
-                )
-                st.plotly_chart(fig, use_container_width=True)
-                
-        with tabs[2]:
-            # TIMELINE SCATTER
-            st.markdown("### ⏱️ Temporal Risk Distribution")
-            fig2 = px.scatter(
-                df_final,
-                x=date_col,
-                y=amount_col,
-                size='risk_score',
-                color='risk_score',
-                color_continuous_scale=[[0, '#00D4AA'], [1, '#FF6B6B']],
-                hover_data=[vendor_col]
-            )
-            fig2.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(255,255,255,0.4)',
-                font={'color': '#64748B'},
-                xaxis=dict(showgrid=False),
-                yaxis=dict(gridcolor='rgba(0,0,0,0.05)')
-            )
-            st.plotly_chart(fig2, use_container_width=True)
-
-    except Exception as e:
-        st.error(f"Processing Error: {e}")
-        st.markdown("""<div style="text-align:center; padding: 2rem; color: #94A3B8;">
-        Ensure your file has <strong>Date</strong>, <strong>Amount</strong>, and <strong>Vendor</strong> columns.
-        </div>""", unsafe_allow_html=True)
-else:
-    # EMPTY STATE HERO
-    st.markdown("""
-        <div style="text-align: center; margin-top: 3rem; opacity: 0.6;">
-            <div style="font-size: 5rem; margin-bottom: 1rem;">📂</div>
-            <p style="font-size: 1.1rem; color: #64748B;">Drag and drop your transaction ledger to begin forensic analysis.</p>
-        </div>
-    """, unsafe_allow_html=True)
+    /* Secondary Button */
+    .stDownloadButton 
