@@ -20,232 +20,156 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- ADVANCED CUSTOM CSS (THE "PREMIUM SAAS" LOOK) ---
+# --- PREMIUM ENTERPRISE CSS ---
 CUSTOM_CSS = """
 <style>
-    /* 1. TYPOGRAPHY IMPORT */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@500;600;700;800&display=swap');
+    /* 1. GOOGLE FONTS */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
 
-    /* 2. ROOT VARIABLES */
+    /* 2. VARIABLES - SLATE/NAVY THEME */
     :root {
-        --primary: #0066FF;
-        --primary-glow: rgba(0, 102, 255, 0.4);
-        --secondary: #00D4AA;
-        --danger: #FF6B6B;
-        --bg-gradient-start: #F8FAFF;
-        --bg-gradient-end: #FFFFFF;
-        --text-dark: #0F172A;
-        --text-gray: #64748B;
-        --glass-bg: rgba(255, 255, 255, 0.65);
-        --glass-border: 1px solid rgba(255, 255, 255, 0.9);
-        --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-        --card-radius: 24px;
+        --primary: #0F172A;        /* Slate 900 */
+        --primary-light: #334155;  /* Slate 700 */
+        --accent: #2563EB;         /* Blue 600 */
+        --success: #059669;        /* Emerald 600 */
+        --danger: #DC2626;         /* Red 600 */
+        --background: #F8FAFC;     /* Slate 50 */
+        --surface: #FFFFFF;
+        --border: #E2E8F0;
+        --text-primary: #1E293B;
+        --text-secondary: #64748B;
+        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        --radius: 8px;
     }
 
-    /* 3. GLOBAL RESET & BODY */
+    /* 3. GLOBAL STYLES */
     .stApp {
-        background: radial-gradient(circle at top left, #F0F4FF, #FFFFFF, #F0FFF9);
+        background-color: var(--background);
         font-family: 'Inter', sans-serif;
-        color: var(--text-dark);
+        color: var(--text-primary);
     }
-    
+
     h1, h2, h3 {
-        font-family: 'Poppins', sans-serif;
+        font-family: 'Inter', sans-serif; /* Clean Sans for headers too, optional Playfair for specialized headers */
         font-weight: 700;
-        letter-spacing: -0.03em;
-        color: var(--text-dark);
-    }
-
-    /* 4. HIDE STREAMLIT DEFAULT ELEMENTS (Restored sidebar for Admin) */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    /* header {visibility: hidden;}  <-- Commented out to allow Sidebar access */
-    .stDeployButton {display: none;}
-
-    /* 5. HERO SECTION */
-    .hero-container {
-        text-align: center;
-        padding: 4rem 0 3rem 0;
-        animation: fadeIn 1s ease-out;
+        letter-spacing: -0.025em;
+        color: var(--text-primary);
     }
     
-    .hero-title {
-        font-size: 4.5rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #0F172A 0%, #0066FF 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 0.5rem;
-        line-height: 1.1;
-    }
-    
-    .hero-subtitle {
-        font-size: 1.25rem;
-        color: var(--text-gray);
-        max-width: 600px;
-        margin: 0 auto;
-        font-weight: 400;
-    }
-
-    /* 6. GLASSMORPHISM CARDS */
-    .glass-panel {
-        background: var(--glass-bg);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        border: var(--glass-border);
-        border-radius: var(--card-radius);
-        box-shadow: var(--glass-shadow);
-        padding: 2rem;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .glass-panel:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
-    }
-    
-    /* 6b. ENTERPRISE GATE CARD */
-    .enterprise-gate {
-        background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(240,250,255,0.9) 100%);
-        border: 1px solid #00D4AA;
-        border-left: 5px solid #00D4AA;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin: 1.5rem 0;
-        box-shadow: 0 10px 30px rgba(0, 212, 170, 0.1);
-        animation: slideIn 0.5s ease-out;
-    }
-
-    /* 7. CUSTOM FILE UPLOADER STYLE */
-    .stFileUploader {
-        padding: 2rem;
-        border: 2px dashed rgba(0, 102, 255, 0.2);
-        border-radius: var(--card-radius);
-        background: rgba(255,255,255,0.5);
-        text-align: center;
-        transition: all 0.3s ease;
-    }
-    
-    .stFileUploader:hover {
-        border-color: var(--primary);
-        background: rgba(0, 102, 255, 0.02);
-    }
-    
-    /* 8. METRIC CARDS (COCKPIT) */
-    .metric-container {
+    /* 4. NAVIGATION / HERO */
+    .top-nav {
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 2rem;
         display: flex;
-        flex-direction: column;
+        justify-content: space-between;
         align-items: center;
-        justify-content: center;
-        text-align: center;
+        margin-bottom: 2rem;
     }
     
-    .metric-value {
-        font-family: 'Poppins', sans-serif;
-        font-size: 2.8rem;
+    .brand-title {
+        font-size: 1.5rem;
         font-weight: 700;
-        line-height: 1.2;
-        background: linear-gradient(180deg, var(--text-dark) 0%, #334155 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
     }
-    
-    .metric-label {
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--text-gray);
+
+    /* 5. METRIC CARDS */
+    .metric-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.2s;
+    }
+    .metric-card:hover {
+        box-shadow: var(--shadow-md);
+        border-color: var(--accent);
+    }
+    .metric-title {
+        font-size: 0.875rem;
         font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    .metric-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
         margin-top: 0.5rem;
     }
+    .metric-sub {
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
 
-    /* 9. DATAFRAME STYLING */
+    /* 6. UPLOADER */
+    .stFileUploader {
+        padding: 2rem;
+        border: 2px dashed var(--border);
+        border-radius: var(--radius);
+        background: var(--surface);
+        transition: all 0.2s;
+        text-align: center;
+    }
+    .stFileUploader:hover {
+        border-color: var(--accent);
+        background: #F1F5F9;
+    }
+
+    /* 7. TABLES & DATAFRAMES */
     .stDataFrame {
-        border-radius: 16px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
         overflow: hidden;
-        border: 1px solid rgba(0,0,0,0.05);
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
     }
 
-    /* 10. ANIMATIONS */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
+    /* 8. ALERTS */
+    .alert-box {
+        padding: 1rem;
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        border-left: 4px solid;
     }
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateX(-20px); }
-        to { opacity: 1; transform: translateX(0); }
+    .alert-high {
+        background: #FEF2F2;
+        border-color: var(--danger);
+        color: #991B1B;
     }
-    
-    .animate-enter {
-        animation: fadeIn 0.8s ease-out forwards;
-    }
-
-    /* 11. CUSTOM BUTTONS */
-    .stButton > button {
-        background: var(--primary);
-        color: white;
-        border: none;
-        padding: 0.75rem 2rem;
-        border-radius: 12px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        box-shadow: 0 4px 14px 0 rgba(0, 102, 255, 0.39);
-        transition: all 0.2s ease;
-        width: 100%;
-    }
-    
-    .stButton > button:hover {
-        background: #0055D4;
-        transform: scale(1.02);
-        box-shadow: 0 6px 20px 0 rgba(0, 102, 255, 0.23);
-    }
-    
-    /* Contact Button Style */
-    .contact-btn {
-        display: inline-block;
-        background-color: #059669; 
-        color: white !important; 
-        padding: 10px 20px; 
-        border-radius: 8px; 
-        text-decoration: none; 
-        font-weight: 600; 
-        box-shadow: 0 4px 6px rgba(5, 150, 105, 0.2);
-        transition: transform 0.2s;
-    }
-    .contact-btn:hover {
-        transform: translateY(-2px);
+    .alert-medium {
+        background: #FFFBEB;
+        border-color: #F59E0B;
+        color: #92400E;
     }
 
-    /* 12. TABS */
+    /* 9. TABS */
     .stTabs [data-baseweb="tab-list"] {
-        gap: 24px;
-        background-color: transparent;
-        padding-bottom: 10px;
+        gap: 2rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 1rem;
     }
-
     .stTabs [data-baseweb="tab"] {
-        height: 50px;
-        white-space: pre-wrap;
-        background-color: transparent;
-        border-radius: 12px;
-        color: var(--text-gray);
-        font-weight: 600;
         font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+        color: var(--text-secondary);
         border: none;
-        padding: 0 20px;
+        background: transparent;
     }
-
     .stTabs [aria-selected="true"] {
-        background-color: white;
-        color: var(--primary);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        color: var(--accent);
+        border-bottom: 2px solid var(--accent);
     }
     
-    /* REMOVE PADDING TOP */
-    .block-container {
-        padding-top: 2rem !important;
-    }
+    /* 10. CLEAN UP STREAMLIT DEFAULTS */
+    #MainMenu, footer, header {visibility: hidden;}
+    .block-container {padding-top: 2rem !important;}
+    
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -268,284 +192,251 @@ def generate_sample_csv():
     df = pd.DataFrame(data)
     return df.to_csv(index=False).encode('utf-8')
 
-# --- UI COMPONENTS ---
+# --- COMPONENTS ---
 
-def render_hero():
+def render_header():
     st.markdown("""
-        <div class="hero-container">
-            <div class="hero-title">FraudGuard AI</div>
-            <div class="hero-subtitle">Next-Gen Forensic Audit & Anomaly Detection. <br> Precision engineered for the modern enterprise.</div>
+        <div class="top-nav">
+            <div class="brand-title">
+                🛡️ FRUAUDGUARD <span style="font-weight:300;">AI</span>
+            </div>
+            <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                Enterprise Forensic Edition v2.1
+            </div>
         </div>
     """, unsafe_allow_html=True)
 
-def render_metric_card(label, value, color=None, subtext=None):
+def render_metric(label, value, subtext=None, color=None):
     color_style = f"color: {color};" if color else ""
     st.markdown(f"""
-        <div class="glass-panel metric-container animate-enter">
+        <div class="metric-card">
+            <div class="metric-title">{label}</div>
             <div class="metric-value" style="{color_style}">{value}</div>
-            <div class="metric-label">{label}</div>
-            {f'<div style="font-size:0.75rem; color:#94A3B8; margin-top:4px;">{subtext}</div>' if subtext else ''}
+            {f'<div class="metric-sub" style="{color_style}">{subtext}</div>' if subtext else ''}
         </div>
     """, unsafe_allow_html=True)
 
-def render_enterprise_gate(total_rows, limit=60):
-    st.markdown(f"""
-    <div class="enterprise-gate">
-        <div style="display: flex; align-items: flex-start; gap: 1rem;">
-            <div style="font-size: 2rem;">🔓</div>
-            <div>
-                <h3 style="margin: 0 0 0.5rem 0; color: #047857;">Unlock Enterprise Capability</h3>
-                <p style="margin: 0 0 1rem 0; color: #065F46; font-size: 0.95rem;">
-                    <strong>Trial Mode Active:</strong> Analysis limited to first <strong>{limit}</strong> transactions. 
-                    Your dataset contains <strong>{total_rows}</strong> entries.
-                </p>
-                <div>
-                    <a href="https://www.linkedin.com/in/ali-haider-accountant/" target="_blank" class="contact-btn">
-                        Contact for Full Audit
-                    </a>
-                    <span style="margin: 0 15px; color: #64748B; font-weight: 500; font-size: 0.9rem;">OR</span>
-                    <a href="mailto:alihaiderfinance.cfo@gmail.com" style="color: #059669; font-weight: 600;">
-                        alihaiderfinance.cfo@gmail.com
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+def render_scanning():
+    with st.spinner('Running Forensic Algorithms & Benford Analysis...'):
+        time.sleep(1.5) # Realism
 
-def render_scanning_animation():
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    
-    phases = [
-        "Initializing Neural Networks...",
-        "Normalizing Transaction Vectors...",
-        "Running Isolation Forest...",
-        "Calculating Local Outlier Factors...",
-        "Detecting Collusion Patterns...",
-        "Finalizing Risk Scores..."
-    ]
-    
-    for i, phase in enumerate(phases):
-        # Update text with a nice styled HTML
-        status_text.markdown(f"""
-            <div style="text-align: center; margin-top: 20px; animation: fadeIn 0.5s;">
-                <span style="font-family: 'Roboto Mono', monospace; color: #0066FF; font-weight: 600;">
-                    {phase}
-                </span>
-            </div>
-        """, unsafe_allow_html=True)
-        
-        # Smooth progress update
-        for p in range(0, 101, 20):
-            time.sleep(0.05)
-            progress_val = min((i * 100 // len(phases)) + (p // len(phases)), 100)
-            progress_bar.progress(progress_val)
-            
-    progress_bar.progress(100)
-    time.sleep(0.5)
-    progress_bar.empty()
-    status_text.empty()
-
-# --- ADMIN AUTHENTICATION (SIDEBAR) ---
+# --- ADMIN SIDEBAR ---
 with st.sidebar:
-    st.markdown("### 🛡️ Admin Access")
-    admin_password = st.text_input("Enter Security Key", type="password", placeholder="••••••••")
-    
-    is_admin = False
-    if admin_password == "AliAudit2025":
-        is_admin = True
-        st.success("✅ Authenticated")
-    elif admin_password:
-        st.error("❌ Invalid Key")
-        
+    st.image("https://cdn-icons-png.flaticon.com/512/9131/9131546.png", width=50) # Generic Icon
+    st.markdown("### Admin Panel")
+    password = st.text_input("Access Key", type="password")
+    is_admin = (password == "AliAudit2025")
+    if is_admin:
+        st.success("Authenticated")
     st.markdown("---")
-    st.caption("FraudGuard AI v2.0")
+    st.info("Benford's Law Module Active")
 
-# --- MAIN APP LOGIC ---
+# --- MAIN APP ---
 
-render_hero()
+render_header()
 
-# Main Container using columns for layout centered
-with st.container():
-    # File Uploader Section
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown('<div style="text-align: center; margin-bottom: 10px; font-weight: 600; color: #64748B;">UPLOAD TRANSACTION LEDGER</div>', unsafe_allow_html=True)
-        uploaded_file = st.file_uploader("", type=['csv', 'xlsx'], label_visibility="collapsed")
-        
-        # Demo Data Link
-        if not uploaded_file:
-            st.download_button(
-                label="No data? Download Demo CSV",
-                data=generate_sample_csv(),
-                file_name="demo_fraud_data.csv",
-                mime="text/csv",
-                use_container_width=True
-            )
+col1, col2 = st.columns([2, 1])
 
-# Process Data if available
+with col1:
+    st.markdown("### 📂 Upload Transaction Ledger")
+    uploaded_file = st.file_uploader("Upload CSV/Excel", type=['csv', 'xlsx'], label_visibility="collapsed")
+
+with col2:
+    if not uploaded_file:
+        st.info("Don't have data?")
+        st.download_button("Download Sample Data", generate_sample_csv(), "demo_data.csv", "text/csv")
+
 if uploaded_file:
+    # 1. LOAD
     try:
-        # Load Data
         if uploaded_file.name.endswith('.csv'):
             df = pd.read_csv(uploaded_file)
         else:
             df = pd.read_excel(uploaded_file)
-            
-        # Basic Validation
-        if df.empty:
-            st.error("File is empty.")
-            st.stop()
-            
-        # --- FREEMIUM LOGIC ---
-        total_rows = len(df)
-        ROW_LIMIT = 60
-        is_limited = False
-        
-        # If not admin and rows exceed limit, slice the data
-        if total_rows > ROW_LIMIT and not is_admin:
-            df = df.head(ROW_LIMIT)
-            is_limited = True
-            
-        # Auto-map columns (simplified for UX)
-        cols = df.columns.str.lower()
-        date_col = next((c for c in df.columns if 'date' in c.lower() or 'time' in c.lower()), None)
-        amount_col = next((c for c in df.columns if 'amount' in c.lower() or 'value' in c.lower() or 'cost' in c.lower()), None)
-        vendor_col = next((c for c in df.columns if 'vendor' in c.lower() or 'desc' in c.lower() or 'merchant' in c.lower()), None)
-        
-        if not (date_col and amount_col):
-            st.warning("Could not auto-detect columns. Please rename columns to 'Date', 'Amount', 'Vendor'.")
-            st.stop()
-            
-        # Run Analysis
-        render_scanning_animation()
-        
-        # Fraud Logic
-        df_features = ff.prepare_features(df, time_col=date_col, amount_col=amount_col, id_cols=[vendor_col] if vendor_col else None)
-        df_scored = ff.run_detectors(df_features, contamination=0.05)
-        df_final = ff.ensemble_scores(df_scored, score_cols=['iforest_score', 'lof_score'])
-        alerts = ff.rules_engine(df_final, amount_col=amount_col, vendor_col=vendor_col)
-        
-        # --- DASHBOARD COCKPIT ---
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        # Stats Calculation
-        total_tx = len(df)
-        high_risk_tx = df_final[df_final['risk_score'] > 0.7]
-        high_risk_count = len(high_risk_tx)
-        total_vol = df[amount_col].sum()
-        risk_vol = high_risk_tx[amount_col].sum()
-        
-        # 4 Metric Cards
-        m1, m2, m3, m4 = st.columns(4)
-        
-        with m1:
-            render_metric_card("Transactions", f"{total_tx:,}", subtext="Rows Analyzed")
-        with m2:
-            render_metric_card("Total Volume", f"${total_vol:,.0f}", color="#0066FF")
-        with m3:
-            render_metric_card("High Risk", f"{high_risk_count}", color="#FF6B6B", subtext=f"{len(alerts)} Rule Violations")
-        with m4:
-            render_metric_card("Risk Exposure", f"${risk_vol:,.0f}", color="#FF6B6B")
-
-        # --- ENTERPRISE GATE NOTIFICATION (IF LIMITED) ---
-        if is_limited:
-            render_enterprise_gate(total_rows, ROW_LIMIT)
-
-        st.markdown("<br><br>", unsafe_allow_html=True)
-
-        # --- VISUALIZATION SUITE ---
-        tabs = st.tabs(["🔎 Forensic Explorer", "📊 3D Risk Landscape", "📈 Anomaly Timeline"])
-        
-        with tabs[0]:
-            # Highlighted Dataframe
-            st.markdown("### 📋 High Priority Investigations")
-            
-            # Filter to show risky items first
-            df_display = df_final.sort_values('risk_score', ascending=False).head(100)
-            
-            # Custom Column Config
-            st.dataframe(
-                df_display[[date_col, vendor_col, amount_col, 'risk_score', 'risk_explainer']],
-                column_config={
-                    "risk_score": st.column_config.ProgressColumn(
-                        "Risk Score",
-                        help="AI Confidence 0-100%",
-                        format="%.2f",
-                        min_value=0,
-                        max_value=1,
-                    ),
-                    amount_col: st.column_config.NumberColumn(
-                        "Amount",
-                        format="$%.2f"
-                    )
-                },
-                use_container_width=True,
-                height=400
-            )
-            
-        with tabs[1]:
-            # 3D SCATTER PLOT
-            if 'hour' in df_final.columns:
-                st.markdown("### 🌐 Multidimensional Anomaly Vector")
-                
-                fig = px.scatter_3d(
-                    df_final,
-                    x='hour',
-                    y=amount_col,
-                    z='risk_score',
-                    color='risk_score',
-                    color_continuous_scale=[[0, '#00D4AA'], [0.5, '#0066FF'], [1, '#FF6B6B']],
-                    opacity=0.8,
-                    hover_data=[vendor_col],
-                    height=600
-                )
-                
-                fig.update_layout(
-                    scene=dict(
-                        xaxis=dict(title='Hour of Day', backgroundcolor="rgba(0,0,0,0)", gridcolor="rgba(0,0,0,0.1)", showbackground=False),
-                        yaxis=dict(title='Amount', backgroundcolor="rgba(0,0,0,0)", gridcolor="rgba(0,0,0,0.1)", showbackground=False),
-                        zaxis=dict(title='Risk Score', backgroundcolor="rgba(0,0,0,0)", gridcolor="rgba(0,0,0,0.1)", showbackground=False),
-                        bgcolor='rgba(0,0,0,0)'
-                    ),
-                    paper_bgcolor='rgba(0,0,0,0)',
-                    plot_bgcolor='rgba(0,0,0,0)',
-                    margin=dict(l=0, r=0, b=0, t=0)
-                )
-                st.plotly_chart(fig, use_container_width=True)
-                
-        with tabs[2]:
-            # TIMELINE SCATTER
-            st.markdown("### ⏱️ Temporal Risk Distribution")
-            fig2 = px.scatter(
-                df_final,
-                x=date_col,
-                y=amount_col,
-                size='risk_score',
-                color='risk_score',
-                color_continuous_scale=[[0, '#00D4AA'], [1, '#FF6B6B']],
-                hover_data=[vendor_col]
-            )
-            fig2.update_layout(
-                paper_bgcolor='rgba(0,0,0,0)',
-                plot_bgcolor='rgba(255,255,255,0.4)',
-                font={'color': '#64748B'},
-                xaxis=dict(showgrid=False),
-                yaxis=dict(gridcolor='rgba(0,0,0,0.05)')
-            )
-            st.plotly_chart(fig2, use_container_width=True)
-
     except Exception as e:
-        st.error(f"Processing Error: {e}")
-        st.markdown("""<div style="text-align:center; padding: 2rem; color: #94A3B8;">
-        Ensure your file has <strong>Date</strong>, <strong>Amount</strong>, and <strong>Vendor</strong> columns.
-        </div>""", unsafe_allow_html=True)
-else:
-    # EMPTY STATE HERO
-    st.markdown("""
-        <div style="text-align: center; margin-top: 3rem; opacity: 0.6;">
-            <div style="font-size: 5rem; margin-bottom: 1rem;">📂</div>
-            <p style="font-size: 1.1rem; color: #64748B;">Drag and drop your transaction ledger to begin forensic analysis.</p>
-        </div>
-    """, unsafe_allow_html=True)
+        st.error(f"Error loading file: {e}")
+        st.stop()
+        
+    # 2. VALIDATE
+    if df.empty:
+        st.error("File is empty")
+        st.stop()
+        
+    # Auto-map columns
+    cols = df.columns.str.lower()
+    date_col = next((c for c in df.columns if 'date' in c.lower() or 'time' in c.lower()), None)
+    amount_col = next((c for c in df.columns if 'amount' in c.lower() or 'value' in c.lower() or 'cost' in c.lower()), None)
+    vendor_col = next((c for c in df.columns if 'vendor' in c.lower() or 'desc' in c.lower() or 'merchant' in c.lower()), None)
+    
+    if not (date_col and amount_col):
+        st.warning("Could not auto-detect 'Date' and 'Amount' columns. Please rename your headers.")
+        st.stop()
+        
+    # Free Tier Limit
+    ROW_LIMIT = 60
+    total_rows = len(df)
+    is_limited = (total_rows > ROW_LIMIT) and (not is_admin)
+    
+    if is_limited:
+        df = df.head(ROW_LIMIT)
+        st.warning(f"⚠️ FREE TIER LIMIT: Analyzing first {ROW_LIMIT} of {total_rows} transactions. Upgrade for full audit.")
+        
+    # 3. PROCESS
+    render_scanning()
+    
+    # Feature Engineering
+    df_features = ff.prepare_features(df, time_col=date_col, amount_col=amount_col, id_cols=[vendor_col] if vendor_col else None)
+    
+    # Detection
+    df_scored = ff.run_detectors(df_features, contamination=0.05)
+    df_final = ff.ensemble_scores(df_scored, score_cols=['iforest_score', 'lof_score'])
+    
+    # Rules & Benford
+    alerts = ff.rules_engine(df_final, amount_col=amount_col, vendor_col=vendor_col)
+    benford_res = ff.benfords_law_analysis(df_final, amount_col=amount_col)
+    
+    # 4. DASHBOARD - METRICS
+    st.markdown("### 📊 Executive Summary")
+    
+    total_vol = df[amount_col].sum()
+    high_risk = df_final[df_final['risk_score'] > 0.7]
+    risk_vol = high_risk[amount_col].sum()
+    
+    m1, m2, m3, m4 = st.columns(4)
+    with m1: render_metric("Total Volume", f"${total_vol:,.0f}", "Analyzed Spend")
+    with m2: render_metric("Transactions", f"{len(df):,}", "Total Count")
+    with m3: render_metric("Rule Violations", f"{len(alerts)}", "Specific Flags", color="#DC2626")
+    with m4: render_metric("Risk Exposure", f"${risk_vol:,.0f}", f"{len(high_risk)} High Risk Tx", color="#DC2626")
+    
+    st.markdown("---")
+    
+    # 5. VISUALIZATION TABS
+    tab1, tab2, tab3 = st.tabs(["🔍 Forensic Insights", "📉 Benford's Law", "📄 Detail View"])
+    
+    with tab1:
+        c1, c2 = st.columns([2, 1])
+        
+        with c1:
+            st.subheader("Timeline of Risk")
+            # 2D Scatter of Time vs Amount, colored by Risk
+            fig_time = px.scatter(
+                df_final, 
+                x=date_col, 
+                y=amount_col, 
+                color='risk_score',
+                size='amount_log', # Use log amount for size so outliers don't dwarf everything
+                color_continuous_scale='Reds',
+                hover_data=[vendor_col, 'risk_explainer'],
+                title="Transaction Risk Timeline"
+            )
+            fig_time.update_layout(template="plotly_white", height=400)
+            st.plotly_chart(fig_time, use_container_width=True)
+            
+        with c2:
+            st.subheader("Top Risky Vendors")
+            if vendor_col:
+                # Group by vendor, avg risk
+                ven_risk = df_final.groupby(vendor_col)[['risk_score', amount_col]].agg({'risk_score':'mean', amount_col:'sum'}).reset_index()
+                ven_risk = ven_risk.sort_values('risk_score', ascending=False).head(10)
+                
+                fig_ven = px.bar(
+                    ven_risk,
+                    x='risk_score',
+                    y=vendor_col,
+                    orientation='h',
+                    color='risk_score',
+                    color_continuous_scale='Reds',
+                    title="Vendor Risk Leaderboard"
+                )
+                fig_ven.update_layout(template="plotly_white", height=400, yaxis={'categoryorder':'total ascending'})
+                st.plotly_chart(fig_ven, use_container_width=True)
+            else:
+                st.info("No Vendor column detected for aggregation.")
+
+    with tab2:
+        st.subheader("Benford's Law Analysis")
+        st.markdown("""
+        **Benford's Law** states that in naturally occurring financial datasets, the leading digit is likely to be small. 
+        Deviations usually indicate **manipulated data**.
+        """)
+        
+        if benford_res:
+            bf_df = benford_res['distribution']
+            
+            # Dual line/bar chart
+            fig_bf = go.Figure()
+            
+            # Expected
+            fig_bf.add_trace(go.Scatter(
+                x=bf_df['digit'], 
+                y=bf_df['expected'],
+                mode='lines+markers',
+                name='Expected (Benford)',
+                line=dict(color='#2563EB', width=3, dash='dash')
+            ))
+            
+            # Actual
+            fig_bf.add_trace(go.Bar(
+                x=bf_df['digit'], 
+                y=bf_df['actual'],
+                name='Actual Data',
+                marker_color='#0F172A',
+                opacity=0.7
+            ))
+            
+            fig_bf.update_layout(
+                template="plotly_white",
+                title="First Digit Distribution",
+                xaxis_title="First Digit (1-9)",
+                yaxis_title="Frequency",
+                height=500,
+                xaxis=dict(tickmode='linear', tick0=1, dtick=1)
+            )
+            
+            st.plotly_chart(fig_bf, use_container_width=True)
+            
+            # Interpretation (Simple MAD equivalent check)
+            max_delta = bf_df['delta'].abs().max()
+            if max_delta > 0.05:
+                st.error(f"⚠️ Critical Deviation Detected: Max deviation of {max_delta:.1%} suggests potential manipulation.")
+            elif max_delta > 0.02:
+                st.warning(f"⚠️ Mild Deviation: Max deviation of {max_delta:.1%}.")
+            else:
+                st.success("✅ Data conforms to Benford's Law (Natural Distribution).")
+        else:
+            st.warning("Insufficient data for Benford Analysis.")
+
+    with tab3:
+        st.subheader("Transaction Ledger")
+        
+        # Alerts First
+        if alerts:
+            st.markdown("#### 🚨 Active Alerts")
+            for alert in alerts:
+                sev_class = "alert-high" if alert['severity'].lower() == 'high' else "alert-medium"
+                
+                st.markdown(f"""
+                <div class="alert-box {sev_class}">
+                    <strong>{alert['type']}</strong>: {alert['note']}
+                </div>
+                """, unsafe_allow_html=True)
+        
+        st.markdown("#### Full Data")
+        # Style the dataframe
+        st.dataframe(
+            df_final.sort_values('risk_score', ascending=False),
+            column_config={
+                "risk_score": st.column_config.ProgressColumn(
+                    "Risk",
+                    min_value=0,
+                    max_value=1,
+                    format="%.2f",
+                ),
+                amount_col: st.column_config.NumberColumn(
+                    "Amount",
+                    format="$%.2f"
+                )
+            },
+            use_container_width=True,
+            height=600
+        )

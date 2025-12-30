@@ -65,13 +65,27 @@ class TestFraudForensics(unittest.TestCase):
         alert_types = [a['type'] for a in alerts]
         
         # Check for duplicate alert
-        self.assertIn('duplicate', alert_types)
+        self.assertIn('Duplicate Transaction', alert_types)
         
         # Check for round_amount alert
-        self.assertIn('round_amount', alert_types)
+        self.assertIn('Round Dollar Amount', alert_types)
         
         # Check for high_value alert
-        self.assertIn('high_value', alert_types)
+        self.assertIn('High Value Transaction', alert_types)
+
+    def test_benfords_law(self):
+        print("\nTesting benfords_law_analysis...")
+        # Benford's law works best on large datasets, but we can check structure
+        res = ff.benfords_law_analysis(self.df, amount_col='Amount')
+        
+        self.assertIn('distribution', res)
+        self.assertIn('sample_size', res)
+        
+        dist = res['distribution']
+        self.assertFalse(dist.empty)
+        self.assertTrue('digit' in dist.columns)
+        self.assertTrue('actual' in dist.columns)
+        self.assertTrue('expected' in dist.columns)
 
     def test_ensemble_scores(self):
         print("\nTesting ensemble_scores...")

@@ -260,6 +260,45 @@ def graph_collusion_detector(df: pd.DataFrame,
     return suspicious
 
 # ---------------------------
+# Benford's Law
+# ---------------------------
+def benfords_law_analysis(df: pd.DataFrame, amount_col: str = 'Amount') -> Dict:
+    """
+    Calculates the distribution of the first digit of the amount column
+    and compares it to the expected Benford's Law distribution.
+    """
+    if amount_col not in df.columns:
+        return {}
+
+    # Extract first digit (1-9)
+    # Convert to string, strip leading zeros/minus, take first char
+    s = df[amount_col].astype(str).str.lstrip('-0').str[0]
+    # Keep only digits 1-9
+    s = s[s.str.match(r'^[1-9]$')]
+    
+    if len(s) == 0:
+        return {}
+        
+    counts = s.value_counts(normalize=True).sort_index()
+    
+    # Benford's expected frequencies
+    benford = {str(d): np.log10(1 + 1/d) for d in range(1, 10)}
+    
+    results = []
+    for d in range(1, 10):
+        d_str = str(d)
+        actual = counts.get(d_str, 0.0)
+        expected = benford[d_str]
+        results.append({
+            'digit': d,
+            'actual': actual,
+            'expected': expected,
+            'delta': actual - expected
+        })
+        
+    return {'distribution': pd.DataFrame(results), 'sample_size': len(s)}
+
+# ---------------------------
 # Rule Engine
 # ---------------------------
 def rules_engine(df: pd.DataFrame,
@@ -278,13 +317,16 @@ def rules_engine(df: pd.DataFrame,
     # 1. Duplicates
     # Only run if we have a Vendor column (or description) to pair with Amount
     if vendor_col and vendor_col in df.columns and amount_col in df.columns:
-        dup = df[df.duplicated(subset=[vendor_col, amount_col], keep=False)]
+        dup_mask = df.duplicated(subset=[vendor_col, amount_col], keep=False)
+        dup = df[dup_mask]
         for idx, row in dup.iterrows():
+            # Only flag the second occurrence onwards or all? 
+            # Usually flagging all involved helps usage.
             alerts.append({
                 'tx_id': row.get('tx_id'),
-                'type': 'duplicate',
-                'severity': 'high',
-                'note': f"Duplicate {amount_col} to {row.get(vendor_col)} - ${row.get(amount_col)}"
+                'type': 'Duplicate Transaction',
+                'severity': 'High',
+                'note': f"Potential Duplicate: {row.get(vendor_col)} - ${row.get(amount_col):,.2f}"
             })
 
     # 2. Round numbers & High Value
@@ -292,13 +334,15 @@ def rules_engine(df: pd.DataFrame,
         # Round numbers
         # Filter for non-nulls
         valid_amounts = df[df[amount_col].notna()]
+        
+        # Check if float is basically an integer
         round_mask = (valid_amounts[amount_col] % 1 == 0) & (valid_amounts[amount_col] >= round_threshold)
         for idx, row in valid_amounts[round_mask].iterrows():
             alerts.append({
                 'tx_id': row.get('tx_id'),
-                'type': 'round_amount',
-                'severity': 'medium',
-                'note': f"Round amount ${row.get(amount_col)}"
+                'type': 'Round Dollar Amount',
+                'severity': 'Medium',
+                'note': f"Unusual Round Amount: ${row.get(amount_col):,.2f}"
             })
 
         # High value
@@ -306,9 +350,9 @@ def rules_engine(df: pd.DataFrame,
         for idx, row in valid_amounts[high_mask].iterrows():
             alerts.append({
                 'tx_id': row.get('tx_id'),
-                'type': 'high_value',
-                'severity': 'high',
-                'note': f"High value ${row.get(amount_col)} >= threshold {high_amount_thresh}"
+                'type': 'High Value Transaction',
+                'severity': 'High',
+                'note': f"High Value Alert: ${row.get(amount_col):,.2f} exceeds threshold"
             })
 
     return alerts
@@ -361,20 +405,18 @@ def ensemble_scores(df: pd.DataFrame, score_cols: List[str], weights: Optional[L
         score_val = float(S_norm[j, i])
         method = valid_cols[i]
         
-        if method == 'iforest_score':
-            if score_val > 0.8:
-                expl = "Extremely Rare Pattern (Isolation Forest)"
-            else:
-                expl = "Unusual Transaction Pattern"
-        elif method == 'lof_score':
-            if score_val > 0.8:
-                expl = "Local Density Outlier (LOF)"
-            else:
-                expl = "Deviates from Neighbors"
-        elif method == 'ae_score':
-            expl = "Structural Anomaly (Autoencoder)"
+        # Threshold for considering it an "active" anomaly
+        if score_val < 0.3:
+            expl = "Low Risk"
         else:
-            expl = f"Anomaly Detected ({method})"
+            if method == 'iforest_score':
+                expl = "Statistical Outlier (Isolation Forest)"
+            elif method == 'lof_score':
+                expl = "Local Density Anomaly (LOF)"
+            elif method == 'ae_score':
+                expl = "Pattern Mismatch (Autoencoder)"
+            else:
+                expl = f"Anomaly ({method})"
             
         explanations.append(expl)
         
