@@ -17,159 +17,171 @@ st.set_page_config(
     page_title="FraudGuard AI | Enterprise Forensic Audit",
     page_icon="🛡️",
     layout="wide",
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="expanded"
 )
+
+# --- SESSION STATE & SUBSCRIPTION ---
+if 'subscription_tier' not in st.session_state:
+    st.session_state.subscription_tier = 'Free' # Options: Free, Standard, Enterprise
+
+def upgrade_tier(tier):
+    st.session_state.subscription_tier = tier
+    st.success(f"Successfully subscribed to {tier} Tier!")
+    time.sleep(1)
+    st.rerun()
 
 # --- PREMIUM ENTERPRISE CSS ---
 CUSTOM_CSS = """
 <style>
     /* 1. GOOGLE FONTS */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;600&display=swap');
 
-    /* 2. VARIABLES - SLATE/NAVY THEME */
+    /* 2. VARIABLES - MODERN FINTECH THEME */
     :root {
-        --primary: #0F172A;        /* Slate 900 */
-        --primary-light: #334155;  /* Slate 700 */
-        --accent: #2563EB;         /* Blue 600 */
-        --success: #059669;        /* Emerald 600 */
-        --danger: #DC2626;         /* Red 600 */
-        --background: #F8FAFC;     /* Slate 50 */
+        --primary: #0F172A;
+        --secondary: #1E293B;
+        --accent: #3B82F6;       /* Vibrant Blue */
+        --accent-glow: rgba(59, 130, 246, 0.5);
+        --success: #10B981;
+        --danger: #EF4444;
+        --background: #F1F5F9;
         --surface: #FFFFFF;
         --border: #E2E8F0;
-        --text-primary: #1E293B;
+        --text-primary: #0F172A;
         --text-secondary: #64748B;
-        --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-        --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        --radius: 8px;
+        --radius: 12px;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --glass: rgba(255, 255, 255, 0.9);
+    }
+
+    /* DARK MODE SUPPORT (Optional auto-detect) */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --background: #0B1120;
+            --surface: #1E293B;
+            --border: #334155;
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --glass: rgba(30, 41, 59, 0.9);
+        }
     }
 
     /* 3. GLOBAL STYLES */
     .stApp {
         background-color: var(--background);
-        font-family: 'Inter', sans-serif;
-        color: var(--text-primary);
-    }
-
-    h1, h2, h3 {
-        font-family: 'Inter', sans-serif; /* Clean Sans for headers too, optional Playfair for specialized headers */
-        font-weight: 700;
-        letter-spacing: -0.025em;
-        color: var(--text-primary);
+        font-family: 'Outfit', sans-serif; /* Premium modern font */
     }
     
-    /* 4. NAVIGATION / HERO */
+    h1, h2, h3, h4, .brand-title {
+        font-family: 'Outfit', sans-serif !important;
+        letter-spacing: -0.02em;
+    }
+
+    /* 4. HEADER / NAV - RESPONSIVE */
     .top-nav {
-        background: var(--surface);
+        background: var(--glass);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
         border-bottom: 1px solid var(--border);
         padding: 1rem 2rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 2rem;
+        border-radius: 0 0 var(--radius) var(--radius);
+        box-shadow: var(--shadow);
     }
     
-    .brand-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: var(--primary);
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+    @media (max-width: 768px) {
+        .top-nav {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+            padding: 1rem;
+        }
     }
 
-    /* 5. METRIC CARDS */
+    .brand-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    /* 5. CARDS & METRICS */
     .metric-card {
         background: var(--surface);
         border: 1px solid var(--border);
         border-radius: var(--radius);
         padding: 1.5rem;
-        box-shadow: var(--shadow-sm);
-        transition: all 0.2s;
+        box-shadow: var(--shadow);
+        transition: transform 0.2s, box-shadow 0.2s;
     }
     .metric-card:hover {
-        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
         border-color: var(--accent);
     }
-    .metric-title {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--text-secondary);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-    .metric-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-top: 0.5rem;
-    }
-    .metric-sub {
-        font-size: 0.875rem;
-        margin-top: 0.25rem;
-    }
 
-    /* 6. UPLOADER */
+    /* 6. BUTTONS & UI ELEMENTS */
+    .stButton button {
+        border-radius: var(--radius);
+        font-weight: 600;
+        transition: all 0.2s;
+    }
     .stFileUploader {
-        padding: 2rem;
         border: 2px dashed var(--border);
         border-radius: var(--radius);
         background: var(--surface);
-        transition: all 0.2s;
-        text-align: center;
     }
     .stFileUploader:hover {
         border-color: var(--accent);
-        background: #F1F5F9;
+        background: rgba(59, 130, 246, 0.05); /* Slight blue tint */
     }
 
-    /* 7. TABLES & DATAFRAMES */
-    .stDataFrame {
+    /* 7. PRICING CARDS */
+    .pricing-card {
+        background: var(--surface);
         border: 1px solid var(--border);
         border-radius: var(--radius);
-        overflow: hidden;
+        padding: 1.5rem;
+        text-align: center;
+        transition: all 0.3s;
     }
-
-    /* 8. ALERTS */
+    .pricing-card.highlight {
+        border: 2px solid var(--accent);
+        box-shadow: 0 0 20px var(--accent-glow);
+    }
+    .price-tag {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 1rem 0;
+    }
+    
+    /* 8. ALERTS & TABS */
+    .stTabs [data-baseweb="tab-list"] {
+        border-bottom: 1px solid var(--border);
+        gap: 1rem;
+    }
+    .stTabs [data-baseweb="tab"] {
+        font-family: 'Outfit', sans-serif;
+        font-weight: 500;
+    }
     .alert-box {
         padding: 1rem;
         border-radius: var(--radius);
         margin-bottom: 1rem;
         border-left: 4px solid;
-    }
-    .alert-high {
-        background: #FEF2F2;
-        border-color: var(--danger);
-        color: #991B1B;
-    }
-    .alert-medium {
-        background: #FFFBEB;
-        border-color: #F59E0B;
-        color: #92400E;
-    }
-
-    /* 9. TABS */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 2rem;
-        border-bottom: 1px solid var(--border);
-        padding-bottom: 1rem;
-    }
-    .stTabs [data-baseweb="tab"] {
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        font-size: 1rem;
-        color: var(--text-secondary);
-        border: none;
-        background: transparent;
-    }
-    .stTabs [aria-selected="true"] {
-        color: var(--accent);
-        border-bottom: 2px solid var(--accent);
+        background: var(--surface);
+        box-shadow: var(--shadow);
     }
     
-    /* 10. CLEAN UP STREAMLIT DEFAULTS */
+    /* CLEANUP */
     #MainMenu, footer, header {visibility: hidden;}
-    .block-container {padding-top: 2rem !important;}
-    
+    .block-container {padding-top: 1rem !important;}
 </style>
 """
 st.markdown(CUSTOM_CSS, unsafe_allow_html=True)
@@ -221,14 +233,41 @@ def render_scanning():
         time.sleep(1.5) # Realism
 
 # --- ADMIN SIDEBAR ---
+# --- ADMIN & PRICING SIDEBAR ---
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/9131/9131546.png", width=50) # Generic Icon
+    
+    # Subscription Status
+    current_tier = st.session_state.subscription_tier
+    st.markdown(f"### Current Plan: **{current_tier}**")
+    
+    if current_tier == 'Free':
+        st.info(f"Free Limit: 60 Rows")
+        st.markdown("---")
+        st.markdown("### 💎 Upgrade")
+        if st.button("Standard Plan ($5/mo)"):
+            upgrade_tier('Standard')
+        if st.button("Enterprise Plan ($10/mo)"):
+            upgrade_tier('Enterprise')
+            
+    elif current_tier == 'Standard':
+        st.success(f"Standard Limit: 500 Rows")
+        st.markdown("---")
+        if st.button("Upgrade to Enterprise ($10)"):
+            upgrade_tier('Enterprise')
+            
+    elif current_tier == 'Enterprise':
+        st.success("✨ Unlimited Access Active")
+        st.markdown("---")
+        if st.button("Downgrade to Free"):
+            upgrade_tier('Free')
+
+    st.markdown("---")
     st.markdown("### Admin Panel")
     password = st.text_input("Access Key", type="password")
     is_admin = (password == "AliAudit2025")
     if is_admin:
         st.success("Authenticated")
-    st.markdown("---")
     st.info("Benford's Law Module Active")
 
 # --- MAIN APP ---
@@ -272,14 +311,20 @@ if uploaded_file:
         st.warning("Could not auto-detect 'Date' and 'Amount' columns. Please rename your headers.")
         st.stop()
         
-    # Free Tier Limit
-    ROW_LIMIT = 60
+    # Subscription Tier Limit
+    if st.session_state.subscription_tier == 'Enterprise':
+        ROW_LIMIT = 1000000 # Effectively unlimited
+    elif st.session_state.subscription_tier == 'Standard':
+        ROW_LIMIT = 500
+    else: # Free
+        ROW_LIMIT = 60
+        
     total_rows = len(df)
     is_limited = (total_rows > ROW_LIMIT) and (not is_admin)
     
     if is_limited:
         df = df.head(ROW_LIMIT)
-        st.warning(f"⚠️ FREE TIER LIMIT: Analyzing first {ROW_LIMIT} of {total_rows} transactions. Upgrade for full audit.")
+        st.warning(f"⚠️ {st.session_state.subscription_tier.upper()} PLAN LIMIT: Analyzing first {ROW_LIMIT} of {total_rows} transactions. Upgrade in the sidebar for full audit.")
         
     # 3. PROCESS
     render_scanning()
